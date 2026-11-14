@@ -73,7 +73,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
   - Fuzzy string similarity below containment.
   - Bonus modifiers for release format (TV vs MOVIE vs OVA) and release year.
 - Candidate acceptance requires the highest score to achieve at least 0.850 **and** exceed the runner-up score by a margin of at least 0.100.
-- Synonyms are evaluated as a fallback only if no candidate's primary titles clear the 0.850 floor, preventing secondary synonym noise from triggering false positives.
+- Synonyms are evaluated as a fallback only if no candidate's primary titles are an exact normalized match, preventing secondary synonym noise from triggering false positives while still letting a long official title (`Romelia Senki: Maou wo Taoshita nochi mo …`) be found by the short name it carries as a synonym.
 - A score tie between candidates is never broken arbitrarily: ties result in no Match (and therefore no Presence), unless it is a Season 1 or unmarked file that fits within the Root Season's known episode count.
 
 ### Season Resolution and Absolute Numbering

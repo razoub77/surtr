@@ -108,12 +108,11 @@ fn the_release_year_is_a_small_bonus() {
 }
 
 #[test]
-fn the_synonym_fallback_gates_on_the_raw_title_score() {
-    // The measured fallback rule: score synonyms only when no candidate's
-    // *primary titles* clear 0.85 — bonuses do not count. Here the primary
-    // title contains the query (raw 0.85, exact-ish) but the format penalty
-    // drops the bonus-adjusted score to 0.80: that must NOT unlock synonyms,
-    // or the exact synonym match below would win on a technicality.
+fn a_penalized_containment_hit_is_not_rescued_by_a_synonym() {
+    // The format penalty is applied after synonyms are scored, so a synonym
+    // cannot smuggle a format-conflicting entry past the floor: the primary
+    // title only contains the query (0.85), and the movie-vs-TV conflict
+    // (−0.05) drops it to 0.80 whether or not the synonym is scored.
     let context = Context {
         year: None,
         movie: true,
@@ -125,8 +124,7 @@ fn the_synonym_fallback_gates_on_the_raw_title_score() {
         ..candidate(1, "Sword Art Online Ordinal Scale Recap")
     };
     let candidates = [penalized];
-    // Primary containment (0.85) − movie conflict (0.05) = 0.80: no match,
-    // and no synonym rescue.
+    // Primary containment (0.85) − movie conflict (0.05) = 0.80: no match.
     assert_eq!(
         scorer::select("sword art online ordinal scale", &candidates, &context),
         None
@@ -134,7 +132,7 @@ fn the_synonym_fallback_gates_on_the_raw_title_score() {
 }
 
 #[test]
-fn synonyms_are_scored_when_no_primary_title_clears_the_floor() {
+fn synonyms_are_scored_when_no_primary_title_is_an_exact_match() {
     // Corpus row 47: "Chii Fuyo" is nowhere near the real title, but the
     // recorded synonym `Chii-Fuyo` is exact.
     let candidate = Candidate {
@@ -146,7 +144,7 @@ fn synonyms_are_scored_when_no_primary_title_clears_the_floor() {
 }
 
 #[test]
-fn synonyms_are_ignored_when_a_primary_title_clears_the_floor() {
+fn synonyms_are_ignored_when_a_primary_title_is_an_exact_match() {
     // Corpus row 6: the Suntory special's synonyms contain "Kimi no Na wa" too.
     // Scoring synonyms unconditionally would tie it with the film at 1.0 and
     // yield no Match; the primary exact match must win outright.
@@ -159,6 +157,38 @@ fn synonyms_are_ignored_when_a_primary_title_clears_the_floor() {
     let candidates = [film, noise];
     let selected = scorer::select("kimi no na wa", &candidates, &ctx());
     assert_eq!(selected.map(|c| c.id), Some(21519));
+}
+
+#[test]
+fn a_synonym_that_shortens_a_long_primary_title_wins() {
+    // AniList #180894: the romaji title runs on past the release's short name,
+    // so the primary title only *contains* the query (0.85) — while its sequel
+    // #219243, a TV entry, collects the +0.02 format bonus and lands at the
+    // same 0.85: a 0.02 margin, well inside the 0.10 gate, means no Match. The
+    // entry's own `Romelia Senki` synonym is the exact spelling the query asks
+    // for, so it must be allowed to score even though a primary containment
+    // hit exists — only an *exact* primary title may close the gate.
+    let romelia = |id: i64, format: &str, romaji: &str, synonyms: &[&str]| Candidate {
+        format: Some(format.into()),
+        synonyms: synonyms.iter().map(|s| (*s).to_owned()).collect(),
+        ..candidate(id, romaji)
+    };
+    let candidates = [
+        romelia(
+            180894,
+            "ONA",
+            "Romelia Senki: Maou wo Taoshita nochi mo Jinrui Yabasou dakara Guntai Soshiki Shita",
+            &["A History of the Romelia", "Romelia Senki"],
+        ),
+        romelia(
+            219243,
+            "TV",
+            "Romelia Senki: Maou wo Taoshita nochi mo Jinrui Yabasou dakara Guntai Soshiki Shita Part II",
+            &["Romelia Senki Part II"],
+        ),
+    ];
+    let selected = scorer::select("romelia senki", &candidates, &ctx());
+    assert_eq!(selected.map(|c| c.id), Some(180894));
 }
 
 #[test]

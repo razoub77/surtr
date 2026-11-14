@@ -221,9 +221,13 @@ pub fn select<'a>(
     let query_sig = significant(query);
 
     // Synonyms are a fallback, never a source: score them only when no
-    // Candidate's *raw* primary-title score clears the floor — bonuses do not
-    // count, or a penalized candidate would unlock synonym noise. This is the
-    // measured gate from the research harness (`scoreSet`).
+    // Candidate's *raw* primary-title score is an exact match — bonuses do not
+    // count, or a penalized candidate would unlock synonym noise. An exact
+    // primary title is a self-identifying entry, so a synonym naming it wins
+    // nothing: `Kimi no Na wa` keeps the film over the Suntory special whose
+    // synonym repeats it. A mere containment hit is not self-identifying — the
+    // long-form title of `Romelia Senki` contains its own short name — so the
+    // short name staying in the synonyms is the one place it is written.
     let raw_scores = |with_synonyms: bool| {
         candidates
             .iter()
@@ -232,7 +236,7 @@ pub fn select<'a>(
             })
             .collect::<Vec<_>>()
     };
-    let use_synonyms = raw_scores(false).iter().all(|raw| *raw < ACCEPT - EPS);
+    let use_synonyms = raw_scores(false).iter().all(|raw| *raw < 1.0 - EPS);
 
     let scores = candidates
         .iter()
