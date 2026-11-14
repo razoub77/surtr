@@ -1925,6 +1925,29 @@
  "asw shinja zero no megami sama to hajimeru isekai kouryaku 01 1080p hevc d30965ee": [],
  "tensei shita daiseijo wa seijo de aru koto wo hitakakusu": [],
  "asw tensei shita daiseijo wa seijo de aru koto wo hitakakusu 01 1080p hevc 5f734acb": [],
+ "tensei shita dai seijo wa seijo de aru koto wo hita kakusu": [
+  {
+   "id": 187402,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Tensei shita Dai Seijo wa, Seijo de Aru Koto wo Hita Kakusu",
+    "english": "A Tale of the Secret Saint"
+   },
+   "synonyms": [
+    "大聖女",
+    "Daiseijo"
+   ]
+  }
+ ],
  "kashita maryoku wa revo barai de kyousei choushuu": [
   {
    "id": 202250,

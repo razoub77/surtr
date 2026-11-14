@@ -222,7 +222,10 @@ entries, no scheduled task. Discord forgets the card when mpv exits.
   without a `of Y` denominator.
 - **Season and title are guessed from the filename.** Renamed files or odd
   release names may not match; [Overrides](#8-overrides) fix the ones that
-  matter.
+  matter. When the filename's title finds nothing on AniList at all, Surtr
+  also tries the name of the folder the file is in, so a folder named exactly
+  as AniList spells the title (a space in `Dai Seijo` where the release glued
+  it into `Daiseijo`) matches without an override.
 - **One Discord card per user, from the last-clicked mpv window.** Selecting
   another mpv window hands the card over; a browser or other app does not take
   it away.

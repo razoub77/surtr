@@ -9,7 +9,7 @@ A configured directory; only files beneath one are eligible for presence.
 _Avoid_: library, watch folder
 
 **Release Filename**:
-The basename of the played file: the primary evidence for title, season and episode. When the basename carries no title (`S02E05-Episode Title.mkv`), the parent folder supplies it.
+The basename of the played file: the primary evidence for title, season and episode. When the basename carries no title (`S02E05-Episode Title.mkv`), the parent folder supplies it. A basename that *does* name the show leaves the folder as a second spelling, searched only when the basename's title returns zero Candidates (a release's glued `Daiseijo` where AniList spells `Dai Seijo`).
 _Avoid_: filename, video name
 
 **Parsed Episode**:

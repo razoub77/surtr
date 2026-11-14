@@ -786,6 +786,81 @@ fn an_override_skips_season_corroboration() {
 }
 
 // ---------------------------------------------------------------------------
+// The folder's spelling of the title: the last-resort query
+// ---------------------------------------------------------------------------
+
+const GLUED: &str = r"D:\!Anime\Tensei shita Dai Seijo wa, Seijo de Aru Koto wo Hita Kakusu\[ASW] Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu - 05 [1080p HEVC][5F734ACB].mkv";
+
+#[test]
+fn a_zero_result_title_searches_the_folders_spelling() {
+    // AniList finds the romaji title only as the folder spells it, and reports
+    // the ONA's total as unknown (recorded live, 2026-11-15).
+    let mut source = FixtureSource::new(&[(
+        "tensei shita dai seijo wa seijo de aru koto wo hita kakusu",
+        vec![Candidate {
+            format: Some("ONA".into()),
+            episodes: None,
+            ..candidate(
+                187402,
+                "Tensei shita Dai Seijo wa, Seijo de Aru Koto wo Hita Kakusu",
+            )
+        }],
+    )]);
+    let metadata = lookup(&mut source, GLUED).expect("the folder spelling matches");
+    assert_eq!(metadata.id, 187402);
+    assert_eq!(metadata.episode, Some("Episode 5/?".into()));
+    assert_eq!(
+        source.queries,
+        [
+            "tensei shita daiseijo wa seijo de aru koto wo hitakakusu",
+            "tensei shita dai seijo wa seijo de aru koto wo hita kakusu"
+        ],
+        "the filename's title is asked for first, the folder only after a zero"
+    );
+}
+
+#[test]
+fn a_title_that_returned_candidates_never_falls_back_to_the_folder() {
+    // A lost score-off is not a zero result: the folder spelling could
+    // otherwise turn a documented miss into a lucky match.
+    let mut source = FixtureSource::new(&[(
+        "tensei shita daiseijo wa seijo de aru koto wo hitakakusu",
+        vec![candidate(1, "Some Other Show")],
+    )]);
+    assert_eq!(
+        miss_of(&mut source, GLUED),
+        Some(Miss::Repairable {
+            key: "tensei shita daiseijo wa seijo de aru koto wo hitakakusu".into()
+        })
+    );
+    assert_eq!(
+        source.queries,
+        ["tensei shita daiseijo wa seijo de aru koto wo hitakakusu"],
+        "no second query"
+    );
+}
+
+#[test]
+fn a_folder_without_a_new_spelling_costs_no_extra_query() {
+    let mut source = FixtureSource::new(&[("monster", vec![candidate(19, "MONSTER")])]);
+    lookup(&mut source, r"D:\!Anime\Monster\[Anime Time] Monster - 01.mkv");
+    assert_eq!(source.queries, ["monster"]);
+}
+
+#[test]
+fn a_dead_folder_query_still_reports_the_files_own_title() {
+    // Both spellings return zero: the override key must be the title the
+    // filename names, not the folder's last-resort guess.
+    let mut source = FixtureSource::new(&[]);
+    assert_eq!(
+        miss_of(&mut source, GLUED),
+        Some(Miss::Repairable {
+            key: "tensei shita dai seijo wa seijo de aru koto wo hita kakusu".into()
+        })
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Miss reports: why a lookup found no Match (issue 07)
 // ---------------------------------------------------------------------------
 

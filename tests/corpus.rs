@@ -1,7 +1,8 @@
 //! Golden match corpus: the 48 scored rows of the research corpus, matched
 //! offline against the recorded AniList search fixtures
 //! (`fixtures/anilist-corpus.json`, regenerate with `fixtures/generate.mjs`)
-//! and the recorded `SEQUEL` chains (`fixtures/anilist-relations.json`).
+//! and the recorded `SEQUEL` chains (`fixtures/anilist-relations.json`), plus
+//! row 50 — row 20's file under a folder that spells the title as AniList does.
 //!
 //! Expectations come from the measured pipeline in
 //! `.scratch/surtr/research/match-quality.md` (agreed scorer, margin ≥ 0.10):
@@ -358,6 +359,16 @@ const ROWS: &[(u8, Row)] = &[
         ok(
             r"D:\!Anime\Seishun Buta Yarou wa Randoseru Girl no Yume wo Minai (2023)\Seishun.Buta.Yarou.wa.Randoseru.Girl.no.Yume.wo.Minai.1080p.BDRip.10.bits.DTS.x265-EMBER.mkv",
             161474,
+        ),
+    ),
+    // Row 20's file under a folder named the way AniList spells the title.
+    // The filename's glued `Daiseijo` returns zero Candidates, so the folder's
+    // `Dai Seijo` is searched and matches #187402.
+    (
+        50,
+        ok(
+            r"D:\!Anime\Tensei shita Dai Seijo wa, Seijo de Aru Koto wo Hita Kakusu\[ASW] Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu - 01 [1080p HEVC][5F734ACB].mkv",
+            187402,
         ),
     ),
 ];

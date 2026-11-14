@@ -11,8 +11,10 @@
 //! dropped in one pass (`clean_tokens`); parentheses keep their words unless
 //! they are a year or a technical tag phrase. The season marker, the Movie
 //! marker and the episode marker are then read off the ends, and a trailing
-//! year is dropped. The parent folder contributes its title only when the
-//! basename carries none.
+//! year is dropped. The parent folder supplies the title when the basename
+//! carries none, and a basename that names the show keeps the folder's own
+//! spelling as a last-resort query — AniList search finds `Dai Seijo`, not the
+//! glued `Daiseijo` a release filename writes.
 
 /// What a played path says about the anime it belongs to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +37,11 @@ pub struct ParsedRelease {
     /// Movie 01 - Ordinal Scale` → `ordinal scale`): the fallback query when
     /// the full movie title returns no Candidates.
     pub tail: Option<String>,
+    /// The parent folder's title, when the basename named the show itself
+    /// (`[ASW] Daiseijo wa … - 05` under a folder spelling it `Dai Seijo wa …`).
+    /// The fallback query when the basename's title returns zero Candidates;
+    /// `None` when the folder *is* the title, or the basename is title-less.
+    pub folder: Option<String>,
 }
 
 /// Why a path yields no Presence at all.
@@ -146,7 +153,15 @@ pub fn parse(path: &str) -> Result<ParsedRelease, Rejected> {
     // comes from the same final token stream the title was joined from, so it
     // is already free of tags, years and season markers.
     let tail = if is_movie { movie_tail(&tokens, seam_position(&tokens)) } else { None };
-    let title_tokens = match (seam_position(&tokens), bare) {
+    let seam = seam_position(&tokens);
+    // A basename that names the show leaves the folder as a second spelling of
+    // the same title: `Daiseijo` in the file, `Dai Seijo` in the folder. It is
+    // a fallback query only when that spelling differs.
+    let folder = match (seam, bare) {
+        (Some(seam), false) => Some(join_title(&strip_season_words(&tokens[..seam]))),
+        _ => None,
+    };
+    let title_tokens = match (seam, bare) {
         (Some(seam), true) => tokens[..seam].to_vec(),
         (Some(seam), false) => tokens[seam + 1..].to_vec(),
         (None, _) => tokens,
@@ -156,6 +171,10 @@ pub fn parse(path: &str) -> Result<ParsedRelease, Rejected> {
     if title.chars().filter(|c| c.is_alphanumeric()).count() < 2 {
         return Err(Rejected::NoTitle);
     }
+    let folder = folder.filter(|folder| {
+        let words = folder.chars().filter(|c| c.is_alphanumeric()).count();
+        words >= 2 && crate::scorer::normalize(folder) != crate::scorer::normalize(&title)
+    });
 
     Ok(ParsedRelease {
         title: with_season(title, season),
@@ -164,6 +183,7 @@ pub fn parse(path: &str) -> Result<ParsedRelease, Rejected> {
         movie: is_movie,
         year,
         tail,
+        folder,
     })
 }
 

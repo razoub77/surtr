@@ -109,9 +109,11 @@ impl<S: MediaSource> Matcher<S> {
         self
     }
 
-    /// The search queries for one file, in order: the cleaned title first,
-    /// then a Movie's tail (`Jujutsu Kaisen - Movie 01 - Jujutsu Kaisen 0`
-    /// searches the full title, then `Jujutsu Kaisen 0`).
+    /// The search for one file, in order: the cleaned title, then a Movie's
+    /// tail (`Jujutsu Kaisen - Movie 01 - Jujutsu Kaisen 0` searches the full
+    /// title, then `Jujutsu Kaisen 0`). The last entry is the folder's spelling
+    /// of a title the basename already names, and it is asked for only when
+    /// every earlier query was answered with zero Candidates.
     fn plan(parsed: &release::ParsedRelease) -> Vec<String> {
         let mut queries = vec![parsed.title.clone()];
         if let Some(tail) = &parsed.tail {
@@ -121,6 +123,11 @@ impl<S: MediaSource> Matcher<S> {
         }
         let mut seen = std::collections::HashSet::new();
         queries.retain(|query| seen.insert(scorer::normalize(query)));
+        if let Some(folder) = &parsed.folder {
+            if seen.insert(scorer::normalize(folder)) {
+                queries.push(folder.clone());
+            }
+        }
         queries
     }
 
@@ -150,14 +157,27 @@ impl<S: MediaSource> Matcher<S> {
             movie: parsed.movie,
             episodic: parsed.episode.is_some(),
         };
+        // The folder's spelling is the last query, and only a run of zero
+        // results reaches it: a query that returned any Candidate is evidence
+        // the title is right, and its loss is a score-off, not a zero.
+        let queries = Self::plan(&parsed);
+        let folder_only = parsed
+            .folder
+            .as_ref()
+            .filter(|folder| queries.len() > 1 && queries.last() == Some(folder))
+            .map(|_| queries.len() - 1);
         let mut miss_key = None;
         let mut answered = false;
-        for query in Self::plan(&parsed) {
+        let mut zero = true;
+        for (index, query) in queries.iter().enumerate() {
+            if Some(index) == folder_only && !zero {
+                break;
+            }
             miss_key = Some(query.clone());
             // An override is the user's assertion: skip search and fetch the
             // declared id. A dead id or a contradicted season is no Presence —
             // never a silent fallback to search.
-            if let Some(id) = self.overrides.id(&query) {
+            if let Some(id) = self.overrides.id(query) {
                 let Some(candidate) = self.source.entry(id) else {
                     self.miss = Some(Miss::Fatal {
                         reason: format!("the override for \"{query}\" names no AniList entry"),
@@ -166,14 +186,16 @@ impl<S: MediaSource> Matcher<S> {
                 };
                 return self.resolve_override(&candidate, &parsed);
             }
-            let Some(candidates) = self.source.search(&query) else {
+            let Some(candidates) = self.source.search(query) else {
+                zero = false;
                 continue;
             };
             answered = true;
             if candidates.is_empty() {
                 continue;
             }
-            if let Some(candidate) = scorer::select(&query, &candidates, &context) {
+            zero = false;
+            if let Some(candidate) = scorer::select(query, &candidates, &context) {
                 return self.resolve(candidate, &parsed);
             }
         }

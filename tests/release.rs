@@ -429,6 +429,41 @@ fn a_file_outside_the_roots_never_reaches_the_parser() {
 // ---------------------------------------------------------------------------
 
 #[test]
+fn a_glued_release_spelling_keeps_the_folders_spelling_as_a_fallback() {
+    // AniList search finds `Dai Seijo`, never the release's glued `Daiseijo`,
+    // so the folder's spelling is the parser's second query.
+    let parsed = release::parse(
+        r"D:\!Anime\Tensei shita Dai Seijo wa, Seijo de Aru Koto wo Hita Kakusu\[ASW] Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu - 05 [1080p HEVC][5F734ACB].mkv",
+    )
+    .unwrap();
+    assert_eq!(
+        parsed.title,
+        "tensei shita daiseijo wa seijo de aru koto wo hitakakusu"
+    );
+    assert_eq!(
+        parsed.folder.as_deref(),
+        Some("tensei shita dai seijo wa seijo de aru koto wo hita kakusu")
+    );
+}
+
+#[test]
+fn a_folder_repeating_the_files_title_is_no_fallback() {
+    // The corpus' ordinary shape: the folder and the filename name the same
+    // show, so there is nothing new to search.
+    let parsed = release::parse(r"D:\!Anime\Monster\[Anime Time] Monster - 01.mkv").unwrap();
+    assert_eq!(parsed.title, "monster");
+    assert_eq!(parsed.folder, None);
+}
+
+#[test]
+fn a_title_less_basename_has_no_separate_folder_fallback() {
+    // The folder already *is* the title here; a second query would repeat it.
+    let parsed = release::parse(r"D:\!Anime\Show\Show S2\S02E05-Episode Title.mkv").unwrap();
+    assert_eq!(parsed.title, "show season 2");
+    assert_eq!(parsed.folder, None);
+}
+
+#[test]
 fn parent_folder_fallback_supplies_title_and_season() {
     let parsed = release::parse(r"D:\!Anime\Show\Show S2\S02E05-Episode Title.mkv").unwrap();
     assert_eq!(parsed.title, "show season 2");
