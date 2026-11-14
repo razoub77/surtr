@@ -69,10 +69,20 @@ fn a_score_tie_never_resolves() {
 
 #[test]
 fn a_small_margin_is_rejected() {
-    // Corpus row 18: 0.987 vs 0.926 is inside the 0.10 margin.
+    // 1.0 vs 0.926 is inside the 0.10 margin.
     let top = candidate(142193, "Eiyuu Ou, Bu o Kiwameru Tame Tenseisu: Soshite, Sekai Saikyou no Minarai Kishi");
     let runner = candidate(999, "Eiyuu Wo, Bu o Kiwameru Tame Tenseisu: Soshite, Sekai Saikyou no Minarai Kishi");
     assert_eq!(scorer::select("eiyuu ou bu o kiwameru tame tenseisu soshite sekai saikyou no minarai kishi", &[top, runner], &ctx()), None);
+}
+
+#[test]
+fn the_two_spellings_of_the_object_particle_score_equal() {
+    // Corpus row 18: the filename's `Bu o Kiwameru` is AniList's `Bu wo
+    // Kiwameru`; folding them makes the primary title land exactly.
+    let real = candidate(142193, "Eiyuu-ou, Bu wo Kiwameru Tame Tenseisu: Soshite, Sekai Saikyou no Minarai Kishi");
+    let candidates = [real];
+    let selected = scorer::select("eiyuu ou bu o kiwameru tame tenseisu soshite sekai saikyou no minarai kishi", &candidates, &ctx());
+    assert_eq!(selected.map(|c| c.id), Some(142193));
 }
 
 #[test]

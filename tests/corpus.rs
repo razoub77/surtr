@@ -5,7 +5,7 @@
 //!
 //! Expectations come from the measured pipeline in
 //! `.scratch/surtr/research/match-quality.md` (agreed scorer, margin ≥ 0.10):
-//! 44 rows accept their expected entry, rows 4/18/20/28 yield no Match. Rows
+//! 45 rows accept their expected entry, rows 4/20/28 yield no Match. Rows
 //! 41/44/45/46 are absolute-numbered: the Parsed Episode exceeds the Root
 //! Season's total, the `SEQUEL` walk finds the containing season, and the
 //! episode is remapped to the Season Episode (Oshi no Ko 2nd Season, Kusuriya
@@ -152,10 +152,14 @@ const ROWS: &[(u8, Row)] = &[
             207191,
         ),
     ),
+    // The filename's `Bu o` and AniList's `Bu wo` are the same object
+    // particle; folding them lands the entry exactly, and its TV format
+    // bonus separates it from the `Mini` ONA that shares the title.
     (
         18,
-        none(
+        ok(
             r"D:\!Anime\Eiyuu Ou, Bu o Kiwameru Tame Tenseisu - Soshite, Sekai Saikyou no Minarai Kishi\[Anime Time] Eiyuu Ou, Bu o Kiwameru Tame Tenseisu - Soshite, Sekai Saikyou no Minarai Kishi - 01.mkv",
+            142193,
         ),
     ),
     (

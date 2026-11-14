@@ -31,6 +31,10 @@ const EPISODIC_NON_TV_PENALTY: f64 = -0.05;
 /// Query words that carry no title meaning for containment.
 const STOP_WORDS: &[&str] = &["the", "a", "an"];
 
+/// Two romanizations of the object particle `wo` compared as one: AniList
+/// writes `Bu wo Kiwameru` where a fansub filename writes `Bu o Kiwameru`.
+const PARTICLES: &[(&str, &str)] = &[("wo", "o")];
+
 /// Ordinal and roman season words that normalize away when comparing titles
 /// (`Youjo Senki Season 2` and `Youjo Senki II` compare equal). Only the
 /// numerals the corpus measured map: a lone `i`/`v` stays a title letter
@@ -61,12 +65,17 @@ pub fn normalize(text: &str) -> String {
     crate::release::fold_words(text)
 }
 
-/// Normalized tokens with season ordinals folded in (`2nd`, `season`, `II`).
+/// Normalized tokens with season ordinals folded in (`2nd`, `season`, `II`)
+/// and the two spellings of the object particle folded together.
 fn tokens(text: &str) -> Vec<String> {
     normalize(text)
         .split(' ')
         .filter(|token| !token.is_empty())
         .map(|token| {
+            let token = PARTICLES
+                .iter()
+                .find(|(variant, _)| *variant == token)
+                .map_or(token, |(_, folded)| *folded);
             let digits = token.len()
                 - token
                     .trim_end_matches(['s', 't', 'n', 'd', 'r', 'h'])
