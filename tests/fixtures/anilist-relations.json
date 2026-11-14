@@ -1,0 +1,158 @@
+{
+ "150672": [
+  {
+   "id": 166531,
+   "format": "TV",
+   "seasonYear": 2024,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko] 2nd Season",
+    "english": "OSHI NO KO Season 2"
+   },
+   "synonyms": [
+    "我推的孩子",
+    "[OSHI NO KO] Season 2",
+    "【OSHI NO KO】Season 2"
+   ]
+  }
+ ],
+ "161645": [
+  {
+   "id": 176301,
+   "format": "TV",
+   "seasonYear": 2025,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto 2nd Season",
+    "english": "The Apothecary Diaries Season 2"
+   },
+   "synonyms": [
+    "Die Tagebücher der Apothekerin Season 2",
+    "Diários de uma Apotecária 2ª Temporada",
+    "Монолог фармацевта 2",
+    "Les Carnets de l'apothicaire Saison 2",
+    "Los diarios de la boticaria temporada 2",
+    "Dược sư tự sự"
+   ]
+  }
+ ],
+ "164702": [
+  {
+   "id": 178434,
+   "format": "TV",
+   "seasonYear": 2024,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Tensei Kizoku, Kantei Skill de Nariagaru 2nd Season",
+    "english": "As a Reincarnated Aristocrat, I'll Use My Appraisal Skill to Rise in the World Season 2"
+   },
+   "synonyms": [
+    "KanteiSkill 2"
+   ]
+  }
+ ],
+ "166531": [
+  {
+   "id": 182587,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 11,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko] 3rd Season",
+    "english": "OSHI NO KO Season 3"
+   },
+   "synonyms": [
+    "[OSHI NO KO] Season 3",
+    "【OSHI NO KO】Season 3"
+   ]
+  }
+ ],
+ "176301": [
+  {
+   "id": 195516,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": 12,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto 3rd Season",
+    "english": "The Apothecary Diaries Season 3"
+   },
+   "synonyms": []
+  }
+ ],
+ "178434": [
+  {
+   "id": 185756,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season",
+    "english": "As a Reincarnated Aristocrat, I'll Use My Appraisal Skill to Rise in the World Season 3"
+   },
+   "synonyms": [
+    "KanteiSkill 3"
+   ]
+  }
+ ],
+ "180523": [
+  {
+   "id": 204389,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Yasei no Last Boss ga Arawareta! 2nd Season",
+    "english": "A Wild Last Boss Appeared! Season 2"
+   },
+   "synonyms": []
+  }
+ ]
+}

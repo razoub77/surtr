@@ -1,0 +1,58 @@
+# Publishes a Surtr release: build the daemon, package it with the launcher and
+# conf, verify the archive against the README's contract, and attach the
+# artifacts the install one-liner downloads:
+#
+#   surtr.zip    the install layout (scripts/surtr/* and script-opts/surtr.conf)
+#   install.ps1  the installer itself, so it is never fetched from a branch
+#
+# Users run:
+#   irm https://github.com/razoub77/surtr/releases/latest/download/install.ps1 | iex
+#
+# Push a tag to release: git tag v0.1.0 && git push origin v0.1.0
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build and package
+        shell: pwsh
+        run: ./scripts/package.ps1
+
+      - name: Verify the package contract
+        shell: pwsh
+        run: ./scripts/verify-package.ps1 -Zip dist/surtr.zip -SkipLuaRun
+
+      - name: Run installer tests
+        shell: pwsh
+        run: ./tests/install.tests.ps1
+
+      - name: Publish release assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { "snapshot-$env:GITHUB_RUN_NUMBER" }
+          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download/install.ps1"
+          $notes = "Install or update with:`n`n    irm $url | iex"
+          $ghArgs = @(
+            'release', 'create', $tag,
+            'dist/surtr.zip', 'scripts/install.ps1',
+            '--repo', $env:GITHUB_REPOSITORY,
+            '--title', "Surtr $tag",
+            '--notes', $notes
+          )
+          if ($env:GITHUB_REF_TYPE -ne 'tag') { $ghArgs += '--prerelease' }
+          gh @ghArgs

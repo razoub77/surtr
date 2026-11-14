@@ -1,0 +1,24 @@
+[package]
+name = "surtr"
+version = "0.1.0"
+edition = "2021"
+description = "Surtr daemon: observes mpv over JSON IPC and publishes anime Rich Presence to Discord"
+license = "MIT"
+
+[lib]
+name = "surtr"
+
+[[bin]]
+name = "surtr"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "macros", "net", "time", "sync", "io-util", "fs"] }
+ureq = { version = "2", default-features = false, features = ["tls", "gzip", "json"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

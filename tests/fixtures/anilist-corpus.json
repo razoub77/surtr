@@ -1,0 +1,4348 @@
+{
+ "clannad movie": [
+  {
+   "id": 1723,
+   "format": "MOVIE",
+   "seasonYear": 2007,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Clannad Movie",
+    "english": "Clannad: The Motion Picture"
+   },
+   "synonyms": []
+  }
+ ],
+ "clannad movie 2007": [],
+ "clannad": [
+  {
+   "id": 2167,
+   "format": "TV",
+   "seasonYear": 2007,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 23,
+   "genres": [
+    "Comedy",
+    "Drama",
+    "Romance",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "CLANNAD",
+    "english": "Clannad"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 4059,
+   "format": "OVA",
+   "seasonYear": 2008,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Romance",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "CLANNAD: Mou Hitotsu no Sekai, Tomoyo-hen",
+    "english": "Clannad: Another World, Tomoyo Chapter"
+   },
+   "synonyms": [
+    "Clannad: Mou Hitotsu no Sekai",
+    "Tomoyo-hen",
+    "Clannad OVA",
+    "Clannad Episode 24",
+    "Another World: Tomoyo Arc"
+   ]
+  },
+  {
+   "id": 1723,
+   "format": "MOVIE",
+   "seasonYear": 2007,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Clannad Movie",
+    "english": "Clannad: The Motion Picture"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 4181,
+   "format": "TV",
+   "seasonYear": 2008,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Romance",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "CLANNAD: After Story",
+    "english": "Clannad: After Story"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 6351,
+   "format": "OVA",
+   "seasonYear": 2009,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Romance",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "CLANNAD: After Story - Mou Hitotsu no Sekai, Kyou-hen",
+    "english": "Clannad: Another World, Kyou Chapter"
+   },
+   "synonyms": [
+    "Clannad: Another World",
+    "Kyou Arc",
+    "Clannad: Mo hitotsu no sekai",
+    "Kyou-hen",
+    "Clannad: After Story Episode 25"
+   ]
+  }
+ ],
+ "trix clannad movie 2007 49889ac3": [],
+ "gekijouban sword art online progressive kuraki yuuyami no scherzo": [],
+ "gekijouban sword art online progressive kuraki yuuyami no scherzo 2022": [],
+ "anime": [
+  {
+   "id": 138953,
+   "format": "TV_SHORT",
+   "seasonYear": 2019,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 4,
+   "genres": [
+    "Comedy",
+    "Fantasy",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Mukashi Keiba Nashi",
+    "english": null
+   },
+   "synonyms": [
+    "Horse Racing Folktales",
+    "JRA Anime"
+   ]
+  },
+  {
+   "id": 204539,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Game no Eiyuu",
+    "english": "Heroes of the Game"
+   },
+   "synonyms": [
+    "MLB Anime",
+    "メジャーリーグアニメ"
+   ]
+  },
+  {
+   "id": 6867,
+   "format": "ONA",
+   "seasonYear": 2009,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 9,
+   "genres": [
+    "Action",
+    "Drama",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Halo Legends",
+    "english": "Halo Legends"
+   },
+   "synonyms": [
+    "Halo Anime",
+    "Halo Animation"
+   ]
+  },
+  {
+   "id": 105973,
+   "format": "SPECIAL",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 6,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Anime-gatari",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 4813,
+   "format": "OVA",
+   "seasonYear": 1984,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 6,
+   "genres": [
+    "Hentai"
+   ],
+   "title": {
+    "romaji": "Lolita Anime",
+    "english": "Lolita Anime"
+   },
+   "synonyms": [
+    "Wonder Magazine Series"
+   ]
+  },
+  {
+   "id": 6491,
+   "format": "ONA",
+   "seasonYear": 2009,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Music",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "SCANDAL ANIME",
+    "english": null
+   },
+   "synonyms": [
+    "Scandal"
+   ]
+  },
+  {
+   "id": 4094,
+   "format": "OVA",
+   "seasonYear": 2008,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 6,
+   "genres": [
+    "Action",
+    "Adventure"
+   ],
+   "title": {
+    "romaji": "Batman: Gotham Knight",
+    "english": "Batman: Gotham Knight"
+   },
+   "synonyms": [
+    "Batman Anime",
+    "Batman: Rycerz Gotham",
+    "Batman: El Caballero de Ciudad Gótica",
+    "Batman: O Cavaleiro de Gotham"
+   ]
+  },
+  {
+   "id": 3080,
+   "format": "OVA",
+   "seasonYear": 2002,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action"
+   ],
+   "title": {
+    "romaji": "Anime Tenchou",
+    "english": null
+   },
+   "synonyms": [
+    "Animation Store Manager"
+   ]
+  },
+  {
+   "id": 188753,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Comedy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Gekkan! Nanmono Anime",
+    "english": null
+   },
+   "synonyms": [
+    "なんでもいきもの　げっかん！なんものアニメ",
+    "Nandemo Ikimono: Gekkan! Nanmono Anime",
+    "Nanmono Anime",
+    "なんものアニメ",
+    "Monthly! Nanmono Anime"
+   ]
+  },
+  {
+   "id": 153843,
+   "format": "ONA",
+   "seasonYear": 2022,
+   "season": "WINTER",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Comedy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "NoriPro Anime",
+    "english": null
+   },
+   "synonyms": []
+  }
+ ],
+ "anime time gekijouban sword art online progressive kuraki yuuyami no scherzo 2022 bd 1080p hevc 10bit x265 aac eng sub": [],
+ "jujutsu kaisen": [
+  {
+   "id": 113415,
+   "format": "TV",
+   "seasonYear": 2020,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen",
+    "english": "JUJUTSU KAISEN"
+   },
+   "synonyms": [
+    "JJK",
+    "Sorcery Fight",
+    "咒术回战",
+    "주술회전",
+    "มหาเวทย์ผนึกมาร",
+    "جوجوتسو كايسن",
+    "Магическая битва",
+    "咒術迴戰",
+    "Chú Thuật Hồi Chiến"
+   ]
+  },
+  {
+   "id": 131573,
+   "format": "MOVIE",
+   "seasonYear": 2021,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen 0",
+    "english": "JUJUTSU KAISEN 0"
+   },
+   "synonyms": [
+    "JJK 0",
+    "咒术回战0",
+    "มหาเวทย์ผนึกมาร : ซีโร่",
+    "‎جوجوتسو كايسن 0",
+    "Jujutsu Kaisen Movie",
+    "Магическая битва 0"
+   ]
+  },
+  {
+   "id": 209895,
+   "format": null,
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen: Shimetsu Kaiyuu - Kouhen",
+    "english": null
+   },
+   "synonyms": [
+    "Jujutsu Kaisen 4th Season",
+    "呪術廻戦 第4期",
+    "JUJUTSU KAISEN Season 4: The Culling Game Part 2"
+   ]
+  },
+  {
+   "id": 172463,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen: Shimetsu Kaiyuu - Zenpen",
+    "english": "JUJUTSU KAISEN Season 3: The Culling Game Part 1"
+   },
+   "synonyms": [
+    "Jujutsu Kaisen 3rd Season",
+    "呪術廻戦 第3期",
+    "JJK3",
+    "มหาเวทย์ผนึกมาร จรดลล้างบาง พาร์ต 1"
+   ]
+  },
+  {
+   "id": 147463,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 3,
+   "genres": [
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen PV",
+    "english": null
+   },
+   "synonyms": [
+    "JJK PV",
+    "Sorcery Fight PV"
+   ]
+  },
+  {
+   "id": 145064,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 23,
+   "genres": [
+    "Action",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen 2nd Season",
+    "english": "JUJUTSU KAISEN Season 2"
+   },
+   "synonyms": [
+    "呪術廻戦 懐玉・玉折／渋谷事変 ",
+    "Jujutsu Kaisen: Kaigyoku Gyokusetsu / Shibuya Jihen",
+    "Jujutsu Kaisen: Hidden Inventory / Premature Death",
+    "JJK2",
+    "咒術迴戰  第二季",
+    "มหาเวทย์ผนึกมาร ภาค 2 ",
+    "咒术回战 2",
+    "2جوجوتسو كايسن ",
+    "Jujutsu Kaisen: Shibuya Incident"
+   ]
+  },
+  {
+   "id": 204066,
+   "format": "MOVIE",
+   "seasonYear": 2025,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen: Shibuya Jihen Tokubetsu Henshuu-ban × Shimetsu Kaiyuu Senkou Jouei",
+    "english": "JUJUTSU KAISEN: Execution -Shibuya Incident x The Culling Game Begins-"
+   },
+   "synonyms": [
+    "JJK Movie",
+    "JUJUTSU KAISEN: Execution"
+   ]
+  },
+  {
+   "id": 211607,
+   "format": "SPECIAL",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Sci-Fi",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen Modulo PV",
+    "english": null
+   },
+   "synonyms": [
+    "呪術廻戦 モジュロ PV"
+   ]
+  },
+  {
+   "id": 192809,
+   "format": "MOVIE",
+   "seasonYear": 2025,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen: Kaigyoku・Gyokusetsu",
+    "english": "JUJUTSU KAISEN: Hidden Inventory / Premature Death – The Movie"
+   },
+   "synonyms": [
+    "JJK Movie",
+    "JUJUTSU KAISEN - Inventário Oculto / Morte Prematura - O Filme"
+   ]
+  },
+  {
+   "id": 192810,
+   "format": "SPECIAL",
+   "seasonYear": 2025,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Comedy",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Juju Sanpo: Gekijouban",
+    "english": null
+   },
+   "synonyms": [
+    "JUJUTSU KAISEN: Hidden Inventory / Premature Death - Juju Stroll",
+    "劇場版総集編 呪術廻戦 懐玉・玉折 劇場版じゅじゅさんぽ"
+   ]
+  }
+ ],
+ "judas jujutsu kaisen movie 01 jujutsu kaisen 0 bd 1080p hevc x265 10bit dual audio multi subs": [],
+ "demon slayer infinity castle i": [],
+ "trix demon slayer infinity castle i webrip 1080p av1 dual audio multi subs": [],
+ "cosmic princess kaguya 1080p nf web dl dual ddp5 1 h 264": [],
+ "cosmic princess kaguya 1080p nf web dl dual ddp5 1 h 264 2026": [],
+ "cosmic princess kaguya 2026 1080p nf web dl dual ddp5 1 h 264 varyg": [],
+ "kimi no na wa": [
+  {
+   "id": 97962,
+   "format": "SPECIAL",
+   "seasonYear": 2016,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 3,
+   "genres": [
+    "Drama"
+   ],
+   "title": {
+    "romaji": "Suntory Minami Alps no Tennen Mizu",
+    "english": null
+   },
+   "synonyms": [
+    "Kimi no Na wa.",
+    "Your Name.",
+    "SUNTORY × Kimi no Na wa."
+   ]
+  },
+  {
+   "id": 21519,
+   "format": "MOVIE",
+   "seasonYear": 2016,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Romance",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Kimi no Na wa.",
+    "english": "Your Name."
+   },
+   "synonyms": [
+    "Your Name. - Gestern, heute und für immer",
+    "Mi a Neved?",
+    "你的名字。",
+    "너의 이름은.",
+    "Tu nombre",
+    "Твоё имя",
+    "หลับตาฝันถึงชื่อเธอ",
+    "Il tuo nome",
+    "השם שלך.",
+    "Twoje imię",
+    "Tên cậu là gì",
+    "Tvoje meno.",
+    "Tvoje jméno."
+   ]
+  },
+  {
+   "id": 5643,
+   "format": "OVA",
+   "seasonYear": 2008,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 2,
+   "genres": [
+    "Hentai"
+   ],
+   "title": {
+    "romaji": "Kimi no Na wo Yobeba",
+    "english": null
+   },
+   "synonyms": [
+    "If I Call Your Name"
+   ]
+  },
+  {
+   "id": 184951,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Romance",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Seihantai na Kimi to Boku",
+    "english": "You and I Are Polar Opposites"
+   },
+   "synonyms": [
+    "ลุ้นรักฉบับคู่ต่างขั้ว",
+    "정반대의 너와 나",
+    "Cậu Và Tớ Là Hai Thái Cực Đối Lập"
+   ]
+  },
+  {
+   "id": 210031,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Comedy",
+    "Drama",
+    "Romance",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Seihantai na Kimi to Boku 2nd Season",
+    "english": "You and I Are Polar Opposites Season 2"
+   },
+   "synonyms": [
+    "ลุ้นรักฉบับคู่ต่างขั้ว ซีซัน 2"
+   ]
+  },
+  {
+   "id": 4835,
+   "format": "MOVIE",
+   "seasonYear": 2008,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "BLEACH: Fade to Black - Kimi no Na wo Yobu",
+    "english": "Bleach the Movie: Fade to Black"
+   },
+   "synonyms": [
+    "Bleach Movie 3",
+    "Bleach: Fade to Black - I Call Your Name",
+    "بليتش: التلاشي إلى الأسود"
+   ]
+  },
+  {
+   "id": 216171,
+   "format": "OVA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Hentai"
+   ],
+   "title": {
+    "romaji": "Majime na Kimi ni Hamaru Karada THE ANIMATION",
+    "english": null
+   },
+   "synonyms": [
+    "Loosen Up"
+   ]
+  },
+  {
+   "id": 154459,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Keikenzumi na Kimi to, Keiken Zero na Ore ga, Otsukiai suru Hanashi.",
+    "english": "Our Dating Story: The Experienced You and The Inexperienced Me"
+   },
+   "synonyms": [
+    "หนุ่มซิงกับสาวฮอต เดตนี้จะรอดมั้ยนะ",
+    "Kimizero",
+    "キミゼロ",
+    "Kisah Asmara Kita: Kamu yang Berpengalaman dan Aku yang Polos",
+    "Искушённая ты и незрелый я",
+    "Kẻ Ngây Thơ, Người Từng Trải Và Câu Chuyện Tình Của Chúng Ta"
+   ]
+  },
+  {
+   "id": 5550,
+   "format": "OVA",
+   "seasonYear": 2002,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Hentai"
+   ],
+   "title": {
+    "romaji": "Fujun Isei Kouyuu: Taisetsu na Kimi e",
+    "english": null
+   },
+   "synonyms": [
+    "Fujun Isei Kouyuu: Taisetsu na Kimi he"
+   ]
+  },
+  {
+   "id": 122201,
+   "format": "OVA",
+   "seasonYear": 2020,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 6,
+   "genres": [
+    "Hentai"
+   ],
+   "title": {
+    "romaji": "Toshoshitsu no Kanojo: Seiso na Kimi ga Ochiru made THE ANIMATION",
+    "english": "The Girl in the Library ～Fall of Purity～ THE ANIMATION"
+   },
+   "synonyms": [
+    "Girl in the Library: The Corruption of a Pure Girl"
+   ]
+  }
+ ],
+ "bdfansub kimi no na wa 1080p aac x265": [],
+ "spy x family code white": [
+  {
+   "id": 158928,
+   "format": "MOVIE",
+   "seasonYear": 2023,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "SPY×FAMILY CODE: White",
+    "english": "SPY x FAMILY CODE: White"
+   },
+   "synonyms": [
+    "SxF Movie",
+    "劇場版 スパイファミリー",
+    "SPY x FAMILY CÓDIGO: Branco"
+   ]
+  },
+  {
+   "id": 177098,
+   "format": "SPECIAL",
+   "seasonYear": 2023,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action"
+   ],
+   "title": {
+    "romaji": "Street Fighter 6 × SPY×FAMILY CODE: White",
+    "english": "Street Fighter 6 VS SPY×FAMILY CODE: White"
+   },
+   "synonyms": [
+    "ストリートファイター6 × SPY×FAMILY CODE: White スペシャルコラボアニメ",
+    "Street Fighter 6 x SPY×FAMILY CODE: White Special Collabo Anime",
+    "Street Fighter 6 - SPY×FAMILY CODE: White Special Collaboration Anime",
+    "SPY×FAMILY CODE: White × スト6",
+    "SPY×FAMILY CODE: White × SF6"
+   ]
+  }
+ ],
+ "asw spy x family code white 1080p hevc d4935429": [],
+ "ansatsu kyoushitsu movie minna no jikan": [],
+ "minna no jikan": [
+  {
+   "id": 198373,
+   "format": "MOVIE",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Comedy",
+    "Sci-Fi",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Ansatsu Kyoushitsu: Minna no Jikan",
+    "english": "Assassination Classroom the Movie: Our Time"
+   },
+   "synonyms": [
+    "Assassination Classroom: Everyone's Time",
+    "Ansatsu Kyoushitsu Movie 2",
+    "Assassination Classroom Movie 2",
+    "Assassination Classroom: l'ora di tutti noi",
+    "Assassination Classroom: El tiempo que compartimos"
+   ]
+  }
+ ],
+ "asw ansatsu kyoushitsu movie minna no jikan 1080p hevc df86e022": [],
+ "no game no life zero": [
+  {
+   "id": 21875,
+   "format": "MOVIE",
+   "seasonYear": 2017,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Drama",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "No Game No Life Zero",
+    "english": "No Game, No Life Zero"
+   },
+   "synonyms": [
+    "NO GAME NO LIFE Movie",
+    "游戏人生 零",
+    "โนเกม โนไลฟ์ เดอะมูฟวี่",
+    "โนเกม โนไลฟ์ ซีโร่",
+    "NGNL Zero",
+    "ノゲノラ ゼロ",
+    "nogenora 0"
+   ]
+  }
+ ],
+ "judas no game no life zero": [],
+ "sword art online": [
+  {
+   "id": 11757,
+   "format": "TV",
+   "seasonYear": 2012,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 25,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Sword Art Online",
+    "english": "Sword Art Online"
+   },
+   "synonyms": [
+    "S.A.O",
+    "SAO",
+    "אומנות החרב אונליין",
+    "刀剑神域",
+    "ซอร์ดอาร์ตออนไลน์",
+    "Мастера меча онлайн"
+   ]
+  },
+  {
+   "id": 20594,
+   "format": "TV",
+   "seasonYear": 2014,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Sword Art Online II",
+    "english": "Sword Art Online II"
+   },
+   "synonyms": [
+    "SAO2",
+    "GGO",
+    "ซอร์ดอาร์ตออนไลน์ ภาค 2"
+   ]
+  },
+  {
+   "id": 100182,
+   "format": "TV",
+   "seasonYear": 2018,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Alicization",
+    "english": "Sword Art Online: Alicization"
+   },
+   "synonyms": [
+    "SAOIII",
+    "SAO3",
+    "Alicization",
+    "Sword Art Online III",
+    "ซอร์ดอาร์ตออนไลน์: Alicization",
+    "ซอร์ดอาร์ตออนไลน์ ภาค 3"
+   ]
+  },
+  {
+   "id": 101965,
+   "format": "SPECIAL",
+   "seasonYear": 2017,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Ordinal Scale - Sword Art Offline",
+    "english": "Sword Art Online Movie: Ordinal Scale - Sword Art Offline"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 21403,
+   "format": "MOVIE",
+   "seasonYear": 2017,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Romance",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Ordinal Scale",
+    "english": "Sword Art Online the Movie: Ordinal Scale"
+   },
+   "synonyms": [
+    "SAO THE MOVIE"
+   ]
+  },
+  {
+   "id": 20021,
+   "format": "SPECIAL",
+   "seasonYear": 2013,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Extra Edition",
+    "english": "Sword Art Online EXTRA EDITION"
+   },
+   "synonyms": [
+    "S.A.O: Extra Edition",
+    "SAO: Extra Edition",
+    "ซอร์ดอาร์ตออนไลน์: Extra Edition"
+   ]
+  },
+  {
+   "id": 100183,
+   "format": "TV",
+   "seasonYear": 2018,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Sword Art Online Alternative: Gun Gale Online",
+    "english": "Sword Art Online Alternative: Gun Gale Online"
+   },
+   "synonyms": [
+    "SAO Alternative: Gun Gale Online",
+    "SAO GGO"
+   ]
+  },
+  {
+   "id": 156631,
+   "format": "MOVIE",
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Integral Domain",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 208754,
+   "format": "MOVIE",
+   "seasonYear": 2026,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure"
+   ],
+   "title": {
+    "romaji": "Unanswered//butterfly: Sword Art Online",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 124140,
+   "format": "MOVIE",
+   "seasonYear": 2021,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Progressive - Hoshinaki Yoru no Aria",
+    "english": "Sword Art Online the Movie -Progressive- Aria of a Starless Night"
+   },
+   "synonyms": [
+    "SAO Progressive",
+    "Sword Art Online: Progressive - อาเรียแห่งคืนที่ไร้ดาว",
+    "Sword Art Online Progressive: Ária de Uma Noite Sem Estrelas",
+    "SAOP",
+    "Sword Art Online: Progressive - Aria de una noche sin estrellas"
+   ]
+  }
+ ],
+ "judas sword art online movie 01 ordinal scale bd 1080p hevc x265 10bit dual audio eng subs": [],
+ "black clover": [
+  {
+   "id": 97940,
+   "format": "TV",
+   "seasonYear": 2017,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 170,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Black Clover",
+    "english": "Black Clover"
+   },
+   "synonyms": [
+    "תלתן שחור",
+    "แบล็กโคลเวอร์",
+    "Чёрный клевер"
+   ]
+  },
+  {
+   "id": 155017,
+   "format": "SPECIAL",
+   "seasonYear": 2018,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 15,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Petit Clover Advance",
+    "english": null
+   },
+   "synonyms": [
+    "Black Clover"
+   ]
+  },
+  {
+   "id": 131680,
+   "format": "MOVIE",
+   "seasonYear": 2023,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Black Clover: Mahou Tei no Ken",
+    "english": "Black Clover: Sword of the Wizard King"
+   },
+   "synonyms": [
+    "Black Clover Movie",
+    "Чорна конюшина: Меч короля магів",
+    "Black Clover: A Espada do Rei Mago",
+    "Black Clover: La espada del rey mago",
+    "Черный клевер: Меч короля магов"
+   ]
+  },
+  {
+   "id": 110318,
+   "format": "ONA",
+   "seasonYear": 2019,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 8,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Mugyutto! Black Clover",
+    "english": "Squishy! Black Clover"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 195604,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Black Clover 2nd Season",
+    "english": "Black Clover Season 2"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 106223,
+   "format": "SPECIAL",
+   "seasonYear": 2018,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Black Clover: All Mahou Kishi Kanshasai",
+    "english": "Black Clover: The All Magic Knights Thanksgiving Festa"
+   },
+   "synonyms": [
+    "JSAF2018 Special Anime All Mahou Kishi Kanshasai",
+    "Black Clover: JSAF2018 La Thanksgiving des Chevaliers-Mages",
+    "Black Clover: Jump Festa 2018 Special",
+    "JSAF2018 オール魔法騎士感謝祭"
+   ]
+  },
+  {
+   "id": 87528,
+   "format": "SPECIAL",
+   "seasonYear": 2016,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Black Clover: Jump Festa 2016 Special",
+    "english": "Black Clover: Jump Festa 2016 Special"
+   },
+   "synonyms": []
+  }
+ ],
+ "judas black clover 001": [],
+ "judas black clover s02e01": [],
+ "black clover sword of the wizard king": [
+  {
+   "id": 131680,
+   "format": "MOVIE",
+   "seasonYear": 2023,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Black Clover: Mahou Tei no Ken",
+    "english": "Black Clover: Sword of the Wizard King"
+   },
+   "synonyms": [
+    "Black Clover Movie",
+    "Чорна конюшина: Меч короля магів",
+    "Black Clover: A Espada do Rei Mago",
+    "Black Clover: La espada del rey mago",
+    "Черный клевер: Меч короля магов"
+   ]
+  }
+ ],
+ "judas black clover sword of the wizard king 1080p hevc x265 10bit dual audio multi subs": [],
+ "monster": [
+  {
+   "id": 19,
+   "format": "TV",
+   "seasonYear": 2004,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 74,
+   "genres": [
+    "Drama",
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "MONSTER",
+    "english": "Monster"
+   },
+   "synonyms": [
+    "モンスター",
+    "מונסטר",
+    "מפלצת",
+    "مونستر",
+    "وحش",
+    "Монстр",
+    "怪物"
+   ]
+  },
+  {
+   "id": 124756,
+   "format": "OVA",
+   "seasonYear": 2019,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 3,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Golden Kamuy 2nd Season OVA",
+    "english": null
+   },
+   "synonyms": [
+    "恋をしたから脱獄することにした",
+    "Koi wo Shita Kara Datsugoto Suru Koto ni Shita",
+    "恐怖の猛毒大死闘！北海道奥地に巨大蛇は存在した！",
+    "Kyoufu no Moudoku Dai Shitou! Hokkaido Okuchi ni Kyodai Hebi wa Sonzai Shita!",
+    "モンスター",
+    "Monster",
+    "支遁動物記I ",
+    "Shidon Doubutsuki",
+    "Golden Kamui 2nd Season OVA",
+    "Love Made Me Escape From Prison",
+    "The Terrifying Battle of Deadly Poison! A Massive Snake Deep in the Hokkaido Wilderness!"
+   ]
+  },
+  {
+   "id": 153288,
+   "format": "TV",
+   "seasonYear": 2024,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Kaijuu 8-gou",
+    "english": "Kaiju No. 8"
+   },
+   "synonyms": [
+    "Monster #8",
+    "8Kaijuu",
+    "KAIJU No. EIGHT",
+    "Kaiju N°8",
+    "괴수 8호"
+   ]
+  },
+  {
+   "id": 210234,
+   "format": "TV_SHORT",
+   "seasonYear": 2026,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Mamonogurai no Boukensha: Ore Dake Mamono wo Kuratte Tsuyoku Naru",
+    "english": "Monster Eater"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 5081,
+   "format": "TV",
+   "seasonYear": 2009,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 15,
+   "genres": [
+    "Comedy",
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Romance",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Bakemonogatari",
+    "english": "Bakemonogatari"
+   },
+   "synonyms": [
+    "Monster Tale",
+    "化物语",
+    "ปกรณัมของเหล่าภูต",
+    "Monogatari"
+   ]
+  },
+  {
+   "id": 499,
+   "format": "OVA",
+   "seasonYear": 1988,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Horror",
+    "Romance",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Makai Toshi Shinjuku",
+    "english": "Demon City Shinjuku"
+   },
+   "synonyms": [
+    "Monster City"
+   ]
+  },
+  {
+   "id": 159052,
+   "format": "MUSIC",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Music"
+   ],
+   "title": {
+    "romaji": "Monster Disco",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 156101,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Guaishou Xiao Guan",
+    "english": "Monster Diner"
+   },
+   "synonyms": [
+    "Monster Diner"
+   ]
+  },
+  {
+   "id": 6978,
+   "format": "MOVIE",
+   "seasonYear": 1981,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Horror",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Monster of Frankenstein",
+    "english": "The Monster Of Frankenstein"
+   },
+   "synonyms": [
+    "Kyofu densetsu Kaiki! Furankenshutain",
+    "Kyoufu Densetsu - Kaiki! Frankenstein",
+    "Frankensteins Monster",
+    "Horror Legend - Bizarre! Frankenstein"
+   ]
+  },
+  {
+   "id": 98862,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 18,
+   "genres": [
+    "Action",
+    "Comedy",
+    "Ecchi",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Yaoguai Mingdan",
+    "english": null
+   },
+   "synonyms": [
+    "Monster List"
+   ]
+  }
+ ],
+ "anime time monster 01": [],
+ "violet evergarden": [
+  {
+   "id": 21827,
+   "format": "TV",
+   "seasonYear": 2018,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Violet Evergarden",
+    "english": "Violet Evergarden"
+   },
+   "synonyms": [
+    "ויולט אברגרדן",
+    "فيوليت",
+    "紫罗兰永恒花园"
+   ]
+  },
+  {
+   "id": 154164,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 2,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Violet Evergarden CM",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 103047,
+   "format": "MOVIE",
+   "seasonYear": 2020,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Violet Evergarden Movie",
+    "english": "Violet Evergarden: the Movie"
+   },
+   "synonyms": [
+    "Виолетта Эвергарден",
+    "Вайоллет Эвергарден",
+    "薇尔莉特·伊芙加登",
+    "Violet Evergarden : Le film"
+   ]
+  },
+  {
+   "id": 101432,
+   "format": "OVA",
+   "seasonYear": 2018,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Romance",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Violet Evergarden: Kitto \"Ai\" wo Shiru Hi ga Kuru no Darou",
+    "english": "Violet Evergarden: Special"
+   },
+   "synonyms": [
+    "فيوليت: رسالة"
+   ]
+  },
+  {
+   "id": 109190,
+   "format": "MOVIE",
+   "seasonYear": 2019,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Violet Evergarden Gaiden: Eien to Jidou Shuki Ningyou",
+    "english": "Violet Evergarden: Eternity and the Auto Memory Doll"
+   },
+   "synonyms": [
+    "Violet Evergarden und das Band der Freundschaft",
+    "Violet Evergarden Gaiden: La Eternidad y la Muñeca de Recuerdos Automáticos",
+    "Violet Evergarden Gaiden: Eternidade e a Boneca de Automemória",
+    "فيوليت: الأبدية وذكريات الدمية الآلية",
+    "Вайолет Эвергарден: Вечность и призрак пера",
+    "Violet Evergarden: Věčnost a Píšící panenka",
+    "Violet Evergarden : Éternité et la Poupée de Souvenirs Automatiques"
+   ]
+  }
+ ],
+ "kuraki yuuyami no scherzo": [
+  {
+   "id": 140999,
+   "format": "MOVIE",
+   "seasonYear": 2022,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Progressive - Kuraki Yuuyami no Scherzo",
+    "english": "Sword Art Online the Movie -Progressive- Scherzo of Deep Night"
+   },
+   "synonyms": [
+    "Sword Art Online: Progressive - Scherzo of Dark Night",
+    "SAO Progressive",
+    "SAOP",
+    "Sword Art Online : Progressive - สแกรโซแห่งสนธยาโศก",
+    "Sword Art Online: Progressive - Scherzo de una profunda oscuridad",
+    "Sword Art Online Progressive: Scherzo do Crepúsculo Sombrio "
+   ]
+  }
+ ],
+ "jujutsu kaisen movie 01 jujutsu kaisen 0": [],
+ "jujutsu kaisen 0": [
+  {
+   "id": 131573,
+   "format": "MOVIE",
+   "seasonYear": 2021,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Jujutsu Kaisen 0",
+    "english": "JUJUTSU KAISEN 0"
+   },
+   "synonyms": [
+    "JJK 0",
+    "咒术回战0",
+    "มหาเวทย์ผนึกมาร : ซีโร่",
+    "‎جوجوتسو كايسن 0",
+    "Jujutsu Kaisen Movie",
+    "Магическая битва 0"
+   ]
+  }
+ ],
+ "cosmic princess kaguya": [
+  {
+   "id": 201903,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Comedy",
+    "Drama",
+    "Fantasy",
+    "Music",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Chou Kaguya-hime!",
+    "english": "Cosmic Princess Kaguya!"
+   },
+   "synonyms": [
+    "La princesa Kaguya del cosmos",
+    "‫كاغويا أميرة الفضاء!",
+    "超时空辉耀姬！",
+    "Kaguya, princesse cosmique",
+    "Κοσμική Πριγκίπισσα Καγκούγια!",
+    "초(超) 가구야 공주!",
+    "Kaguya: A Princesa Espacial",
+    "Cosmica prințesă Kaguya!",
+    "เจ้าหญิงกระบอกไม้ไผ่ ในโลกเมตาเวิร์ส",
+    "Космическая принцесса Кагуя!",
+    "CPK",
+    "הנסיכה הקוסמית קאגויה",
+    "Kaguya – Công chúa vũ trụ!"
+   ]
+  },
+  {
+   "id": 207083,
+   "format": "MUSIC",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Fantasy",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "ray Chou Kaguya-hime! Version",
+    "english": "ray (Cosmic Princess Kaguya! Version)"
+   },
+   "synonyms": [
+    "ray CPK Ver."
+   ]
+  }
+ ],
+ "cosmic princess kaguya 2026": [],
+ "sword art online movie 01 ordinal scale": [],
+ "ordinal scale": [
+  {
+   "id": 21403,
+   "format": "MOVIE",
+   "seasonYear": 2017,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy",
+    "Romance",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Ordinal Scale",
+    "english": "Sword Art Online the Movie: Ordinal Scale"
+   },
+   "synonyms": [
+    "SAO THE MOVIE"
+   ]
+  },
+  {
+   "id": 101965,
+   "format": "SPECIAL",
+   "seasonYear": 2017,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Sword Art Online: Ordinal Scale - Sword Art Offline",
+    "english": "Sword Art Online Movie: Ordinal Scale - Sword Art Offline"
+   },
+   "synonyms": []
+  }
+ ],
+ "black clover s1": [],
+ "black clover season 2": [
+  {
+   "id": 195604,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Black Clover 2nd Season",
+    "english": "Black Clover Season 2"
+   },
+   "synonyms": []
+  }
+ ],
+ "black clover s2": [],
+ "sokudo violet evergarden 01 1080p bd av1 dual audio": [],
+ "shunkashuutou daikousha haru no mai": [
+  {
+   "id": 190143,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 14,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Shunkashuutou Daikousha: Haru no Mai",
+    "english": "Agents of the Four Seasons: Dance of Spring"
+   },
+   "synonyms": [
+    "4 Seasons",
+    "Utusan Empat Musim: Tarian Musim Semi",
+    "Gli Agenti delle Quattro Stagioni: La Danza della Primavera",
+    "ลำนำรักผู้พิทักษ์ฤดูกาล ภาควสันตลีลา",
+    "Sứ giả bốn mùa: Vũ Điệu Mùa Xuân",
+    "Агенты Времён года: Весенний танец"
+   ]
+  }
+ ],
+ "asw shunkashuutou daikousha haru no mai 01 1080p hevc 44dfed18": [],
+ "doumo suki na hito ni horegusuri wo irai sareta majo desu": [
+  {
+   "id": 207191,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": 12,
+   "genres": [
+    "Fantasy",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Doumo, Suki na Hito ni Horegusuri wo Irai Sareta Majo desu.",
+    "english": "Hello, I am a Witch and my Crush Wants me to Make a Love Potion!"
+   },
+   "synonyms": [
+    "Hi, I'm a Witch, and My Crush Wants Me to Make a Love Potion",
+    "I'm a witch who's crush requested a love potion",
+    "惚れ魔女",
+    "Horemajo",
+    "Love Potion, la sorcière mal-aimée"
+   ]
+  }
+ ],
+ "asw doumo suki na hito ni horegusuri wo irai sareta majo desu 01 1080p hevc bc2c1b27": [],
+ "eiyuu ou bu o kiwameru tame tenseisu soshite sekai saikyou no minarai kishi": [
+  {
+   "id": 142193,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Eiyuu-ou, Bu wo Kiwameru Tame Tenseisu: Soshite, Sekai Saikyou no Minarai Kishi♀",
+    "english": "Reborn to Master the Blade: From Hero-King to Extraordinary Squire"
+   },
+   "synonyms": [
+    "ราชาวีรชน เกิดใหม่เพื่อขัดเกลาวิถีต่อสู้ และ กลายเป็นอัศวินฝึกหัดที่แกร่งสุดในโลก",
+    "英雄王，為了窮盡武道而轉生～而後成為世界最強見習騎士♀～",
+    "英雄王，为了穷尽武道而转生～然后，成为世界最强的见习骑士♀",
+    "Eiyuuou, Bu wo Kiwameru Tame Tenseisu",
+    "Raja Pahlawan Bereinkarnasi Untuk Mengasah Ilmu Bela Diri",
+    "Переродился, чтобы стать мастером меча: из великого короля в ученицу рыцаря"
+   ]
+  },
+  {
+   "id": 125647,
+   "format": "ONA",
+   "seasonYear": 2020,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 2,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Eiyuu-ou, Bu wo Kiwameru Tame Tenseisu: Soshite, Sekai Saikyou no Minarai Kishi♀ Mini",
+    "english": null
+   },
+   "synonyms": []
+  }
+ ],
+ "anime time eiyuu ou bu o kiwameru tame tenseisu soshite sekai saikyou no minarai kishi 01": [],
+ "shinja zero no megami sama to hajimeru isekai kouryaku": [
+  {
+   "id": 205896,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku",
+    "english": "Full Clearing Another World under a Goddess with Zero Believers"
+   },
+   "synonyms": [
+    "Clear the World Like a Game with the Zero Believer Goddess"
+   ]
+  }
+ ],
+ "asw shinja zero no megami sama to hajimeru isekai kouryaku 01 1080p hevc d30965ee": [],
+ "tensei shita daiseijo wa seijo de aru koto wo hitakakusu": [],
+ "asw tensei shita daiseijo wa seijo de aru koto wo hitakakusu 01 1080p hevc 5f734acb": [],
+ "kashita maryoku wa revo barai de kyousei choushuu": [
+  {
+   "id": 202250,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Kashita Maryoku wa [Revo Barai] de Kyousei Choushuu",
+    "english": "Magic Repo Man: Dumped by My Party, I’ll Cash In With a Cute Support Fairy to Become the Strongest!"
+   },
+   "synonyms": [
+    "貸した魔力は【リボ払い】で強制徴収～用済みとパーティー追放された俺は、可愛いサポート妖精と一緒に取り立てた魔力を運用して最強を目指す。～",
+    "Kashita Maryoku wa [Revo Barai] de Kyousei Choushuu ~Youzumi to Party Tsuihou sareta Ore wa, Kawaii Support Yousei to Issho ni Toritateta Maryoku wo Unyou shite Saikyou wo Mezasu.",
+    "Maryoku Revo",
+    "魔力リボ"
+   ]
+  }
+ ],
+ "asw kashita maryoku wa revo barai de kyousei choushuu 01 1080p hevc e6356cb2": [],
+ "even the student council has its holes": [
+  {
+   "id": 191656,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Ecchi",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Seitokai ni mo Ana wa Aru!",
+    "english": "Even the Student Council Has Its Holes!"
+   },
+   "synonyms": [
+    "生穴る",
+    "NamaAnaru",
+    "สภานักเรียนฉบับรั่ว!"
+   ]
+  }
+ ],
+ "seitokai ni mo ana wa aru": [
+  {
+   "id": 191656,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Ecchi",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Seitokai ni mo Ana wa Aru!",
+    "english": "Even the Student Council Has Its Holes!"
+   },
+   "synonyms": [
+    "生穴る",
+    "NamaAnaru",
+    "สภานักเรียนฉบับรั่ว!"
+   ]
+  },
+  {
+   "id": 179207,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Comedy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Seitokai ni mo Ana wa Aru! PV",
+    "english": null
+   },
+   "synonyms": [
+    "生徒会にも穴はある！ CM",
+    "みんなで踊ってみた",
+    "生徒会のCMを撮影するぞー！",
+    "There's also a Hole in the Student Council! PV"
+   ]
+  }
+ ],
+ "even the student council has its holes s01e01 repack 1080p uncensored adn web dl jpn aac2 0 h 264 msubs toonshub": [],
+ "medalist": [
+  {
+   "id": 165171,
+   "format": "TV",
+   "seasonYear": 2025,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Drama",
+    "Psychological",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Medalist",
+    "english": "Medalist"
+   },
+   "synonyms": [
+    "金牌得主"
+   ]
+  },
+  {
+   "id": 189275,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 9,
+   "genres": [
+    "Drama",
+    "Psychological",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Medalist 2nd Season",
+    "english": "Medalist Season 2"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 206298,
+   "format": "MOVIE",
+   "seasonYear": 2027,
+   "season": "WINTER",
+   "status": "NOT_YET_RELEASED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Psychological",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Medalist Movie",
+    "english": null
+   },
+   "synonyms": []
+  }
+ ],
+ "medalist s01e01 a genius on the ice 1080p hulu web dl jpn aac2 0 h 264 esub toonshub": [],
+ "cyberpunk edgerunners 2": [
+  {
+   "id": 195539,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 10,
+   "genres": [
+    "Action",
+    "Drama",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Cyberpunk: Edgerunners 2",
+    "english": "Cyberpunk: Edgerunners 2"
+   },
+   "synonyms": [
+    "サイバーパンク: エッジランナーズ II",
+    "Cyberpunk: Edgerunners II"
+   ]
+  }
+ ],
+ "erai raws cyberpunk edgerunners 2 01 1080p nf web dl hevc eac3 multisub e755130e": [],
+ "to be hero x": [
+  {
+   "id": 156092,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Drama",
+    "Mystery",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Tu Bian Yingxiong X",
+    "english": "To Be Hero X"
+   },
+   "synonyms": [
+    "凸变英雄 第三季",
+    "To Be Hero 3",
+    "TBHX"
+   ]
+  }
+ ],
+ "asw to be hero x 01 1080p hevc 73e37fce": [],
+ "soul eater": [
+  {
+   "id": 3588,
+   "format": "TV",
+   "seasonYear": 2008,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 51,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Fantasy",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Soul Eater",
+    "english": "Soul Eater"
+   },
+   "synonyms": [
+    "אכלן הנשמות ",
+    "סול איטר",
+    "Пожирач душ"
+   ]
+  },
+  {
+   "id": 20547,
+   "format": "TV",
+   "seasonYear": 2014,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Comedy",
+    "Fantasy",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Soul Eater Not!",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 21687,
+   "format": "SPECIAL",
+   "seasonYear": 2008,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 51,
+   "genres": [
+    "Action",
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Soul Eater Late Show",
+    "english": "Soul Eater Late Show"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 9328,
+   "format": "OVA",
+   "seasonYear": 2010,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Fantasy",
+    "Hentai"
+   ],
+   "title": {
+    "romaji": "Shoujo Senki Soul Eater",
+    "english": null
+   },
+   "synonyms": [
+    "Ruin Arms Soul Eater"
+   ]
+  }
+ ],
+ "judas soul eater s01e01": [],
+ "darling in the franxx": [
+  {
+   "id": 99423,
+   "format": "TV",
+   "seasonYear": 2018,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Drama",
+    "Mecha",
+    "Psychological",
+    "Romance",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Darling in the Franxx",
+    "english": "DARLING in the FRANXX"
+   },
+   "synonyms": [
+    "DitF",
+    "DarliFra",
+    "Любимый во Франксе"
+   ]
+  }
+ ],
+ "darling in the franxx s01e01 alone and lonesome": [],
+ "honzuki no gekokujou s1": [],
+ "honzuki no gekokujou": [
+  {
+   "id": 113811,
+   "format": "OVA",
+   "seasonYear": 2020,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen OVA",
+    "english": "Ascendance of a Bookworm Side Story"
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm OVA",
+    "Ascendance of a Bookworm Episode 14.5",
+    "Honzuki no Gekokujou Episode 14.5",
+    "Ascendance of a Bookworm Side Story One: Eustachius's Incognito Operation Downtown",
+    "Ascendance of a Bookworm Side Story Two: Visiting Missus Corinna",
+    "หนอนหนังสือยึดอำนาจ OVA"
+   ]
+  },
+  {
+   "id": 171110,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Ryoushu no Youjo",
+    "english": "Ascendance of a Bookworm: Adopted Daughter of an Archduke"
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm Season 4",
+    "本好きの下剋上 司書になるためには手段を選んでいられません 第4期",
+    "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 4th Season"
+   ]
+  },
+  {
+   "id": 217712,
+   "format": "TV",
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Kizoku-in no Jishou Tosho Iin",
+    "english": null
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm Season 5",
+    "Ascendance of a Bookworm: Founder of the Royal Academy's So-Called Library Committee"
+   ]
+  },
+  {
+   "id": 108268,
+   "format": "TV",
+   "seasonYear": 2019,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 14,
+   "genres": [
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen",
+    "english": "Ascendance of a Bookworm"
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm: I'll do anything to become a librarian",
+    "爱书的下克上：为了成为图书管理员不择手段！",
+    "หนอนหนังสือยึดอำนาจ "
+   ]
+  },
+  {
+   "id": 113693,
+   "format": "TV",
+   "seasonYear": 2020,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 2nd Season",
+    "english": "Ascendance of a Bookworm Part 2"
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm Season 2",
+    "爱书的下克上：为了成为图书管理员不择手段！2",
+    "หนอนหนังสือยึดอำนาจ ภาค 2"
+   ]
+  },
+  {
+   "id": 121176,
+   "format": "TV",
+   "seasonYear": 2022,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 10,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 3rd Season",
+    "english": "Ascendance of a Bookworm Season 3"
+   },
+   "synonyms": [
+    "爱书的下克上：为了成为图书管理员不择手段！3",
+    "หนอนหนังสือยึดอำนาจ ภาค 3",
+    "การปฏิวัติของสาวน้อยหนอนหนังสือ ภาค 3",
+    "Sự Nổi Dậy Của Cô Gái Mọt Sách: Mình Sẽ Làm Mọi Cách Để Trở Thành Thủ Thư 3",
+    "Власть книжного червя"
+   ]
+  }
+ ],
+ "s01e01 a world without books": [],
+ "honzuki no gekokujou s2": [],
+ "honzuki no gekokujou season 2": [
+  {
+   "id": 113693,
+   "format": "TV",
+   "seasonYear": 2020,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 2nd Season",
+    "english": "Ascendance of a Bookworm Part 2"
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm Season 2",
+    "爱书的下克上：为了成为图书管理员不择手段！2",
+    "หนอนหนังสือยึดอำนาจ ภาค 2"
+   ]
+  }
+ ],
+ "s02e01 apprentice priestess": [],
+ "honzuki no gekokujou s3": [],
+ "honzuki no gekokujou season 3": [
+  {
+   "id": 121176,
+   "format": "TV",
+   "seasonYear": 2022,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 10,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 3rd Season",
+    "english": "Ascendance of a Bookworm Season 3"
+   },
+   "synonyms": [
+    "爱书的下克上：为了成为图书管理员不择手段！3",
+    "หนอนหนังสือยึดอำนาจ ภาค 3",
+    "การปฏิวัติของสาวน้อยหนอนหนังสือ ภาค 3",
+    "Sự Nổi Dậy Của Cô Gái Mọt Sách: Mình Sẽ Làm Mọi Cách Để Trở Thành Thủ Thư 3",
+    "Власть книжного червя"
+   ]
+  }
+ ],
+ "s03e01 the beginning of winter cbd7c179": [],
+ "honzuki no gekokujou ova": [
+  {
+   "id": 113811,
+   "format": "OVA",
+   "seasonYear": 2020,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen OVA",
+    "english": "Ascendance of a Bookworm Side Story"
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm OVA",
+    "Ascendance of a Bookworm Episode 14.5",
+    "Honzuki no Gekokujou Episode 14.5",
+    "Ascendance of a Bookworm Side Story One: Eustachius's Incognito Operation Downtown",
+    "Ascendance of a Bookworm Side Story Two: Visiting Missus Corinna",
+    "หนอนหนังสือยึดอำนาจ OVA"
+   ]
+  }
+ ],
+ "s01ova eustachius s incognito operation downtown visiting missus corinna": [],
+ "lord of mysteries": [
+  {
+   "id": 137667,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Action",
+    "Drama",
+    "Fantasy",
+    "Mystery",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Guimi Zhi Zhu: Xiaochou Pian",
+    "english": "Lord of Mysteries"
+   },
+   "synonyms": [
+    "Lord of the Mysteries",
+    "LOTM",
+    "诡秘之主",
+    "Lord of Mysteries: The Clown",
+    "Chúa Tể Huyền Bí",
+    "Tuan Misteri",
+    "신비의 제왕",
+    "LoM"
+   ]
+  },
+  {
+   "id": 199448,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 3,
+   "genres": [
+    "Action",
+    "Drama",
+    "Fantasy",
+    "Mystery",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Guimi Zhi Zhu Specials",
+    "english": "Lord of Mysteries Specials"
+   },
+   "synonyms": [
+    "City of Silver",
+    "The Marked Hunt"
+   ]
+  },
+  {
+   "id": 206875,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 9,
+   "genres": [
+    "Comedy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Guimi Zhi Zhu: Caidan",
+    "english": "Lord of Mysteries: Chibi Theatre"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 206874,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Drama",
+    "Fantasy",
+    "Mystery",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Guimi Zhi Zhu: Wu Mian Ren Pian",
+    "english": null
+   },
+   "synonyms": [
+    "Lord of the Mysteries 2",
+    "诡秘之主 第二季"
+   ]
+  }
+ ],
+ "s01e01 the fool 8a4e8b1f": [],
+ "guimi zhi zhu specials": [
+  {
+   "id": 199448,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 3,
+   "genres": [
+    "Action",
+    "Drama",
+    "Fantasy",
+    "Mystery",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Guimi Zhi Zhu Specials",
+    "english": "Lord of Mysteries Specials"
+   },
+   "synonyms": [
+    "City of Silver",
+    "The Marked Hunt"
+   ]
+  }
+ ],
+ "lord of mysteries specials": [
+  {
+   "id": 199448,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 3,
+   "genres": [
+    "Action",
+    "Drama",
+    "Fantasy",
+    "Mystery",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Guimi Zhi Zhu Specials",
+    "english": "Lord of Mysteries Specials"
+   },
+   "synonyms": [
+    "City of Silver",
+    "The Marked Hunt"
+   ]
+  }
+ ],
+ "db guimi zhi zhu specials 01 10bit 1080p x265": [],
+ "horimiya the missing pieces": [
+  {
+   "id": 163132,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Comedy",
+    "Romance",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Horimiya: piece",
+    "english": "Horimiya: The Missing Pieces"
+   },
+   "synonyms": [
+    "Хоримия: Фрагменты"
+   ]
+  }
+ ],
+ "s01e01 class trip e702628a": [],
+ "vinland saga": [
+  {
+   "id": 101348,
+   "format": "TV",
+   "seasonYear": 2019,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Drama"
+   ],
+   "title": {
+    "romaji": "VINLAND SAGA",
+    "english": "Vinland Saga"
+   },
+   "synonyms": [
+    "סאגת וינלנד",
+    "فينلاند ساغا",
+    "สงครามคนทมิฬ",
+    "Сага о Винланде"
+   ]
+  },
+  {
+   "id": 136430,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Drama"
+   ],
+   "title": {
+    "romaji": "VINLAND SAGA SEASON 2",
+    "english": "Vinland Saga Season 2"
+   },
+   "synonyms": [
+    "Сага о Винланде 2"
+   ]
+  },
+  {
+   "id": 145902,
+   "format": "ONA",
+   "seasonYear": 2015,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 3,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Ponkotsuland Saga",
+    "english": null
+   },
+   "synonyms": [
+    "Ponkotsu Quest × Vinland Saga",
+    "ヴィンランド・サガ×ポンコツクエスト"
+   ]
+  },
+  {
+   "id": 161923,
+   "format": "ONA",
+   "seasonYear": 2023,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Drama",
+    "Psychological"
+   ],
+   "title": {
+    "romaji": "VINLAND SAGA SEASON 2: Drowning in the Shadow",
+    "english": null
+   },
+   "synonyms": [
+    "VINLAND SAGA SEASON 2 Episode 6.5 \"Drowning in the Shadow\"",
+    "ヴィンランド・サガ SEASON2 第6.5話 \"Drowning in the Shadow\""
+   ]
+  },
+  {
+   "id": 165056,
+   "format": "ONA",
+   "seasonYear": 2023,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama"
+   ],
+   "title": {
+    "romaji": "VINLAND SAGA SEASON 2: Same old story",
+    "english": null
+   },
+   "synonyms": [
+    "VINLAND SAGA SEASON 2 Episode 18.5 \"Same old story\"",
+    "ヴィンランド・サガ SEASON2 第18.5話 \"Same old story\""
+   ]
+  }
+ ],
+ "vinland saga season 2": [
+  {
+   "id": 136430,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Drama"
+   ],
+   "title": {
+    "romaji": "VINLAND SAGA SEASON 2",
+    "english": "Vinland Saga Season 2"
+   },
+   "synonyms": [
+    "Сага о Винланде 2"
+   ]
+  },
+  {
+   "id": 161923,
+   "format": "ONA",
+   "seasonYear": 2023,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Drama",
+    "Psychological"
+   ],
+   "title": {
+    "romaji": "VINLAND SAGA SEASON 2: Drowning in the Shadow",
+    "english": null
+   },
+   "synonyms": [
+    "VINLAND SAGA SEASON 2 Episode 6.5 \"Drowning in the Shadow\"",
+    "ヴィンランド・サガ SEASON2 第6.5話 \"Drowning in the Shadow\""
+   ]
+  },
+  {
+   "id": 165056,
+   "format": "ONA",
+   "seasonYear": 2023,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama"
+   ],
+   "title": {
+    "romaji": "VINLAND SAGA SEASON 2: Same old story",
+    "english": null
+   },
+   "synonyms": [
+    "VINLAND SAGA SEASON 2 Episode 18.5 \"Same old story\"",
+    "ヴィンランド・サガ SEASON2 第18.5話 \"Same old story\""
+   ]
+  }
+ ],
+ "db vinland saga season 2 01 dual audio 10bit bd1080p x265": [],
+ "db vinland saga 01 dual audio 10bit bd1080p x265": [],
+ "higurashi no naku koro ni": [
+  {
+   "id": 934,
+   "format": "TV",
+   "seasonYear": 2006,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 26,
+   "genres": [
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni",
+    "english": "When They Cry"
+   },
+   "synonyms": [
+    "When the Cicadas Cry",
+    "Higurashi: When They Cry",
+    "Cuando las Cigarras Lloran",
+    "Quando as Cigarras Choram",
+    "쓰르라미 울 적에",
+    "כשהציקדות בוכות",
+    "Hinamizawa, le village maudit",
+    "Higurashi When They Cry (2006 anime version) ",
+    "ยามเมื่อเหล่าจักจั่นกรีดร้อง",
+    "Khi ve sầu ngân",
+    "Higurashi: Όταν Κλαίνε τα Τζιτζίκια",
+    "Gdy zapłaczą cykady"
+   ]
+  },
+  {
+   "id": 1889,
+   "format": "TV",
+   "seasonYear": 2007,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni Kai",
+    "english": "When They Cry Kai"
+   },
+   "synonyms": [
+    "쓰르라미 울 적에 해"
+   ]
+  },
+  {
+   "id": 131149,
+   "format": "TV",
+   "seasonYear": 2021,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 15,
+   "genres": [
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni Sotsu",
+    "english": "Higurashi: When They Cry - SOTSU"
+   },
+   "synonyms": [
+    "Khi Ve Sầu Khóc - Phần kết",
+    "HIGURASHI: Когда плачут цикады — SOTSU"
+   ]
+  },
+  {
+   "id": 3652,
+   "format": "OVA",
+   "seasonYear": 2009,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 5,
+   "genres": [
+    "Comedy",
+    "Mystery",
+    "Psychological",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni Rei",
+    "english": "When They Cry Rei"
+   },
+   "synonyms": [
+    "쓰르라미 울 적에 례"
+   ]
+  },
+  {
+   "id": 114446,
+   "format": "TV",
+   "seasonYear": 2020,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni Gou",
+    "english": "Higurashi: When They Cry - GOU"
+   },
+   "synonyms": [
+    "When the Cicadas Cry ",
+    "Higurashi: When They Cry - NEW",
+    "Higurashi no Naku Koro ni (2020)",
+    "ひぐらしのなく頃に (2020)",
+    "HIGURASHI: Когда плачут цикады — GOU"
+   ]
+  },
+  {
+   "id": 10491,
+   "format": "OVA",
+   "seasonYear": 2011,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 4,
+   "genres": [
+    "Comedy",
+    "Ecchi",
+    "Mahou Shoujo",
+    "Mystery",
+    "Romance",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni Kira",
+    "english": null
+   },
+   "synonyms": [
+    "When They Cry Kira"
+   ]
+  },
+  {
+   "id": 6064,
+   "format": "SPECIAL",
+   "seasonYear": 2007,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Ura☆Higu",
+    "english": null
+   },
+   "synonyms": [
+    "Ura Higu",
+    "Higurashi no Naku Koro ni Kai Specials"
+   ]
+  },
+  {
+   "id": 2899,
+   "format": "SPECIAL",
+   "seasonYear": 2007,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Comedy",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni: Nekogoroshi-hen",
+    "english": null
+   },
+   "synonyms": [
+    "When They Cry: Cat-Killing Arc"
+   ]
+  },
+  {
+   "id": 213396,
+   "format": "TV",
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni (Shin Anime)",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 16700,
+   "format": "OVA",
+   "seasonYear": 2013,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Mystery",
+    "Psychological",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni Kaku: Outbreak",
+    "english": null
+   },
+   "synonyms": [
+    "When They Cry Kaku: Outbreak",
+    "쓰르라미 울 적에 확 -아웃브레이크-"
+   ]
+  }
+ ],
+ "cleo higurashi no naku koro ni 01 dual audio 10bit bd720p x265": [],
+ "higurashi no naku koro ni gou": [
+  {
+   "id": 114446,
+   "format": "TV",
+   "seasonYear": 2020,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Supernatural",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "Higurashi no Naku Koro ni Gou",
+    "english": "Higurashi: When They Cry - GOU"
+   },
+   "synonyms": [
+    "When the Cicadas Cry ",
+    "Higurashi: When They Cry - NEW",
+    "Higurashi no Naku Koro ni (2020)",
+    "ひぐらしのなく頃に (2020)",
+    "HIGURASHI: Когда плачут цикады — GOU"
+   ]
+  }
+ ],
+ "nii sama higurashi no naku koro ni gou 01 1080p bd hevc 10bit flac 2e01273a": [],
+ "grand blue s2": [],
+ "grand blue": [
+  {
+   "id": 100922,
+   "format": "TV",
+   "seasonYear": 2018,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Slice of Life",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Grand Blue",
+    "english": "Grand Blue Dreaming"
+   },
+   "synonyms": [
+    "ก๊วนป่วนชวนบุ๋งบุ๋ง"
+   ]
+  },
+  {
+   "id": 199111,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Slice of Life",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Grand Blue Season 3",
+    "english": "Grand Blue Dreaming Season 3"
+   },
+   "synonyms": [
+    "Grand Blue ก๊วนป่วนชวนบุ๋งบุ๋ง ซีซัน 3"
+   ]
+  },
+  {
+   "id": 182309,
+   "format": "TV",
+   "seasonYear": 2025,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Slice of Life",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Grand Blue Season 2",
+    "english": "Grand Blue Dreaming Season 2"
+   },
+   "synonyms": [
+    "Grand Blue ก๊วนป่วนชวนบุ๋งบุ๋ง ซีซัน 2"
+   ]
+  },
+  {
+   "id": 217136,
+   "format": "TV",
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Comedy",
+    "Slice of Life",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Grand Blue Season 4",
+    "english": null
+   },
+   "synonyms": [
+    "Grand Blue Dreaming Season 4"
+   ]
+  },
+  {
+   "id": 117086,
+   "format": "TV_SHORT",
+   "seasonYear": 2020,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Guraburu!",
+    "english": "Grand Blues!"
+   },
+   "synonyms": []
+  }
+ ],
+ "grand blue season 2": [
+  {
+   "id": 182309,
+   "format": "TV",
+   "seasonYear": 2025,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Slice of Life",
+    "Sports"
+   ],
+   "title": {
+    "romaji": "Grand Blue Season 2",
+    "english": "Grand Blue Dreaming Season 2"
+   },
+   "synonyms": [
+    "Grand Blue ก๊วนป่วนชวนบุ๋งบุ๋ง ซีซัน 2"
+   ]
+  }
+ ],
+ "asw grand blue s2 01 1080p hevc a9885360": [],
+ "youjo senki s2": [],
+ "youjo senki": [
+  {
+   "id": 21613,
+   "format": "TV",
+   "seasonYear": 2017,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Youjo Senki",
+    "english": "Saga of Tanya the Evil"
+   },
+   "synonyms": [
+    "幼女战记",
+    "Колдунья в погонах"
+   ]
+  },
+  {
+   "id": 135865,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Youjo Senki II",
+    "english": "Saga of Tanya the Evil Season 2"
+   },
+   "synonyms": [
+    "Saga of Tanya the Evil II",
+    "Youjo Senki 2"
+   ]
+  },
+  {
+   "id": 100878,
+   "format": "MOVIE",
+   "seasonYear": 2019,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Youjo Senki Movie",
+    "english": "Saga of Tanya the Evil - the Movie -"
+   },
+   "synonyms": [
+    "Колдунья в погонах. Фильм"
+   ]
+  },
+  {
+   "id": 98186,
+   "format": "ONA",
+   "seasonYear": 2017,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Youjo Shenki",
+    "english": null
+   },
+   "synonyms": [
+    "Youjo Senki Petit Chara Anime",
+    "Youjo Senki Mini Anime",
+    "幼女戦記ぶちキャラアニメ",
+    "幼女戦記ミニアニメ"
+   ]
+  },
+  {
+   "id": 135866,
+   "format": "ONA",
+   "seasonYear": 2021,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Youjo Senki: Sabaku no Pasta Daisakusen",
+    "english": "Saga of Tanya the Evil: Operation Desert Pasta"
+   },
+   "synonyms": []
+  }
+ ],
+ "youjo senki season 2": [
+  {
+   "id": 135865,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Youjo Senki II",
+    "english": "Saga of Tanya the Evil Season 2"
+   },
+   "synonyms": [
+    "Saga of Tanya the Evil II",
+    "Youjo Senki 2"
+   ]
+  }
+ ],
+ "asw youjo senki s2 01 1080p hevc 9985bc61": [],
+ "oshi no ko": [
+  {
+   "id": 150672,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 11,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko]",
+    "english": "OSHI NO KO"
+   },
+   "synonyms": [
+    "Favorite Girl",
+    "My Idol's Child",
+    "[Mein*Star]",
+    "เกิดใหม่เป็นลูกโอชิ",
+    "Anak Idola",
+    "【OSHI NO KO】",
+    "【推しの子】Mother and Children",
+    "[Oshi no Ko] Mother and Children",
+    "我推的孩子",
+    "【최애의 아이】",
+    "Đứa Con Của Thần Tượng",
+    "[OSHI NO KO]"
+   ]
+  },
+  {
+   "id": 182587,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 11,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko] 3rd Season",
+    "english": "OSHI NO KO Season 3"
+   },
+   "synonyms": [
+    "[OSHI NO KO] Season 3",
+    "【OSHI NO KO】Season 3"
+   ]
+  },
+  {
+   "id": 166531,
+   "format": "TV",
+   "seasonYear": 2024,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko] 2nd Season",
+    "english": "OSHI NO KO Season 2"
+   },
+   "synonyms": [
+    "我推的孩子",
+    "[OSHI NO KO] Season 2",
+    "【OSHI NO KO】Season 2"
+   ]
+  },
+  {
+   "id": 209827,
+   "format": "TV",
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": null,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko] Final Season",
+    "english": null
+   },
+   "synonyms": [
+    "OSHI NO KO Season 4",
+    "[OSHI NO KO] Season 4",
+    "【OSHI NO KO】Season 4"
+   ]
+  },
+  {
+   "id": 256,
+   "format": "OVA",
+   "seasonYear": 2002,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Mecha",
+    "Romance",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Hoshi no Koe",
+    "english": "Voices of a Distant Star"
+   },
+   "synonyms": [
+    "เสียงเพรียกแห่งดวงดาว",
+    "Głosy z odległej gwiazdy",
+    "La voce delle stelle"
+   ]
+  },
+  {
+   "id": 11213,
+   "format": "TV_SHORT",
+   "seasonYear": 1974,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 260,
+   "genres": [
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Hoshi no Ko Poron",
+    "english": null
+   },
+   "synonyms": [
+    "Polon the Star Child"
+   ]
+  },
+  {
+   "id": 169053,
+   "format": "MUSIC",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [],
+   "title": {
+    "romaji": "Hoshi no Ko Penky",
+    "english": null
+   },
+   "synonyms": [
+    "Minna no Uta"
+   ]
+  },
+  {
+   "id": 5590,
+   "format": "OVA",
+   "seasonYear": 2002,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 2,
+   "genres": [
+    "Hentai"
+   ],
+   "title": {
+    "romaji": "Itoshi no Kotodama",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 3834,
+   "format": "TV",
+   "seasonYear": 1974,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 26,
+   "genres": [
+    "Adventure",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Hoshi no Ko Chobin",
+    "english": null
+   },
+   "synonyms": [
+    "Chobin the Star Child",
+    "Blinki: Der außerirdische Wunderzwerg",
+    "Starchild Chobin"
+   ]
+  }
+ ],
+ "asw oshi no ko 13 1080p hevc 4913bfef": [],
+ "oshi no ko s3": [],
+ "oshi no ko season 3": [
+  {
+   "id": 182587,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 11,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko] 3rd Season",
+    "english": "OSHI NO KO Season 3"
+   },
+   "synonyms": [
+    "[OSHI NO KO] Season 3",
+    "【OSHI NO KO】Season 3"
+   ]
+  }
+ ],
+ "asw oshi no ko s3 01 1080p hevc 23040f40": [],
+ "kikansha no mahou wa tokubetsu desu": [
+  {
+   "id": 163142,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Kikansha no Mahou wa Tokubetsu desu",
+    "english": "A Returner's Magic Should Be Special"
+   },
+   "synonyms": [
+    "Gwihwanjaui Mabeobeun Teukbyeolhaeya Hamnida",
+    "귀환자의 마법은 특별해야 합니다"
+   ]
+  },
+  {
+   "id": 172192,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Kikansha no Mahou wa Tokubetsu desu 2nd Season",
+    "english": "A Returner's Magic Should be Special Season 2"
+   },
+   "synonyms": [
+    "Gwihwanjaui Mabeobeun",
+    "Teukbyeolhaeya Hamnida",
+    "귀환자의 마법은 특별해야 합니다"
+   ]
+  }
+ ],
+ "kikansha no mahou wa tokubetsu desu s2": [],
+ "asw kikansha no mahou wa tokubetsu desu 13 1080p hevc 91dd2ca6": [],
+ "kusuriya no hitorigoto": [
+  {
+   "id": 161645,
+   "format": "TV",
+   "seasonYear": 2023,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto",
+    "english": "The Apothecary Diaries"
+   },
+   "synonyms": [
+    "Drugstore Soliloquy",
+    "Les Carnets de l'Apothicaire",
+    "Zapiski zielarki",
+    "Diários de uma Apotecária",
+    "Il monologo della Speziale",
+    "Los diarios de la boticaria",
+    "สืบคดีปริศนา หมอยาตำรับโคมแดง",
+    "Записки аптекаря",
+    "Die Tagebücher der Apothekerin",
+    "يوميات الصيدلانيّة",
+    "藥師少女的獨語",
+    "药屋少女的呢喃",
+    "Монолог фармацевта",
+    "약사의 혼잣말",
+    "Dược sư tự sự"
+   ]
+  },
+  {
+   "id": 176301,
+   "format": "TV",
+   "seasonYear": 2025,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto 2nd Season",
+    "english": "The Apothecary Diaries Season 2"
+   },
+   "synonyms": [
+    "Die Tagebücher der Apothekerin Season 2",
+    "Diários de uma Apotecária 2ª Temporada",
+    "Монолог фармацевта 2",
+    "Les Carnets de l'apothicaire Saison 2",
+    "Los diarios de la boticaria temporada 2",
+    "Dược sư tự sự"
+   ]
+  },
+  {
+   "id": 195516,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": 12,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto 3rd Season",
+    "english": "The Apothecary Diaries Season 3"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 170508,
+   "format": "ONA",
+   "seasonYear": 2023,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Maomao no Hitorigoto",
+    "english": null
+   },
+   "synonyms": [
+    "Kusuriya no Hitorigoto Mini Anime",
+    "The Apothecary Diaries Mini Anime",
+    "薬屋のひとりごと ミニアニメ"
+   ]
+  },
+  {
+   "id": 200929,
+   "format": "MOVIE",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "NOT_YET_RELEASED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto: Bouhi no Hihou",
+    "english": "The Apothecary Diaries: The Late Lady’s Treasure"
+   },
+   "synonyms": [
+    "The Apothecary Diaries Movie"
+   ]
+  },
+  {
+   "id": 200927,
+   "format": "TV",
+   "seasonYear": 2027,
+   "season": "SPRING",
+   "status": "NOT_YET_RELEASED",
+   "episodes": 12,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto 3rd Season Part 2",
+    "english": null
+   },
+   "synonyms": [
+    "The Apothecary Diaries Season 3 Part 2",
+    "The Apothecary Diaries Season 3 Cour 2"
+   ]
+  },
+  {
+   "id": 218532,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Maomao no Hitorigoto 3rd Season",
+    "english": null
+   },
+   "synonyms": [
+    "Kusuriya no Hitorigoto 3rd Season Mini Anime",
+    "The Apothecary Diaries Season 3 Mini Anime",
+    "薬屋のひとりごと 第3期 ミニアニメ",
+    "The Apothecary Diaries: Maomao's Monologue Season 3"
+   ]
+  },
+  {
+   "id": 186148,
+   "format": "ONA",
+   "seasonYear": 2025,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Maomao no Hitorigoto 2nd Season",
+    "english": null
+   },
+   "synonyms": [
+    "Kusuriya no Hitorigoto 2nd Season Mini Anime",
+    "The Apothecary Diaries Season 2 Mini Anime",
+    "薬屋のひとりごと 第2期 ミニアニメ"
+   ]
+  },
+  {
+   "id": 206349,
+   "format": "SPECIAL",
+   "seasonYear": 2025,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 2,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Maomao no Hitorigoto: USJ wo Chousa Seyo!",
+    "english": null
+   },
+   "synonyms": [
+    "『薬屋のひとりごと』×ユニバーサルスタジオジャパン",
+    "\"Kusuriya no Hitorigoto\" x Universal Studios Japan"
+   ]
+  }
+ ],
+ "asw kusuriya no hitorigoto 50 1080p hevc d5a7ff8e": [],
+ "yasei no last boss ga arawareta": [
+  {
+   "id": 180523,
+   "format": "ONA",
+   "seasonYear": 2025,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Yasei no Last Boss ga Arawareta!",
+    "english": "A Wild Last Boss Appeared!"
+   },
+   "synonyms": [
+    "A Wild Last Boss Appears!",
+    "อุบัติการณ์ลาสบอสสุดแกร่ง"
+   ]
+  },
+  {
+   "id": 204389,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Yasei no Last Boss ga Arawareta! 2nd Season",
+    "english": "A Wild Last Boss Appeared! Season 2"
+   },
+   "synonyms": []
+  }
+ ],
+ "asw yasei no last boss ga arawareta 13 1080p hevc b99b8675": [],
+ "tensei kizoku kantei skill de nariagaru": [
+  {
+   "id": 164702,
+   "format": "TV",
+   "seasonYear": 2024,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Tensei Kizoku, Kantei Skill de Nariagaru",
+    "english": "As a Reincarnated Aristocrat, I'll Use My Appraisal Skill to Rise in the World"
+   },
+   "synonyms": [
+    "KanteiSkill"
+   ]
+  },
+  {
+   "id": 178434,
+   "format": "TV",
+   "seasonYear": 2024,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Tensei Kizoku, Kantei Skill de Nariagaru 2nd Season",
+    "english": "As a Reincarnated Aristocrat, I'll Use My Appraisal Skill to Rise in the World Season 2"
+   },
+   "synonyms": [
+    "KanteiSkill 2"
+   ]
+  },
+  {
+   "id": 185756,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season",
+    "english": "As a Reincarnated Aristocrat, I'll Use My Appraisal Skill to Rise in the World Season 3"
+   },
+   "synonyms": [
+    "KanteiSkill 3"
+   ]
+  }
+ ],
+ "asw tensei kizoku kantei skill de nariagaru 25 1080p hevc 12ee1a3d": [],
+ "chii fuyo": [
+  {
+   "id": 207329,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Adventure",
+    "Comedy",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Tsuihou Sareta Cheat Fuyo Majutsushi wa Kimama na Second Life wo Ouka Suru.: Ore wa Buki dake ja Naku, Arayuru Mono ni \"Kyouka Point\" wo Fuyo Dekiru shi, Ore no Ishi de Itsudemo Kouka wo Kaijo Dekiru kedo, Nokotta Hitotachi Daijoubu?",
+    "english": "The Laid-Off Cheat-Granting Mage Enjoys a Second Lease on Life"
+   },
+   "synonyms": [
+    "The Exiled Cheating Magician Enjoys an Unrestrained Second Life.: I Can Give \"Strengthening Points\" Not Only to Weapons, But Also to Everything, and I Can Unlock the Effect at Any Time of My Will, But are the Rest Okay?",
+    "Chii-Fuyo",
+    "チー付与",
+    "The Laid-Off Cheat-Granting Mage Enjoys a New Life"
+   ]
+  }
+ ],
+ "asw chii fuyo 01 1080p hevc f1efa948": [],
+ "honzuki no gekokujou s4": [],
+ "honzuki no gekokujou season 4": [
+  {
+   "id": 171110,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Drama",
+    "Fantasy",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Honzuki no Gekokujou: Ryoushu no Youjo",
+    "english": "Ascendance of a Bookworm: Adopted Daughter of an Archduke"
+   },
+   "synonyms": [
+    "Ascendance of a Bookworm Season 4",
+    "本好きの下剋上 司書になるためには手段を選んでいられません 第4期",
+    "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 4th Season"
+   ]
+  }
+ ],
+ "asw honzuki no gekokujou s4 01 1080p hevc 9ff15919": [],
+ "seishun buta yarou wa randoseru girl no yume wo minai": [
+  {
+   "id": 161474,
+   "format": "MOVIE",
+   "seasonYear": 2023,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Psychological",
+    "Romance",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Seishun Buta Yarou wa Randoseru Girl no Yume wo Minai",
+    "english": "Rascal Does Not Dream of a Knapsack Kid"
+   },
+   "synonyms": [
+    "Rascal Does Not Dream of a Knapsack Kid",
+    "Ao Buta",
+    "青ブタ"
+   ]
+  }
+ ],
+ "seishun buta yarou wa randoseru girl no yume wo minai 2023": [],
+ "seishun buta yarou wa randoseru girl no yume wo minai 1080p bdrip 10 bits dts x265 ember": [],
+ "oshi no ko season 2": [
+  {
+   "id": 166531,
+   "format": "TV",
+   "seasonYear": 2024,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Drama",
+    "Mystery",
+    "Psychological",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "[Oshi no Ko] 2nd Season",
+    "english": "OSHI NO KO Season 2"
+   },
+   "synonyms": [
+    "我推的孩子",
+    "[OSHI NO KO] Season 2",
+    "【OSHI NO KO】Season 2"
+   ]
+  }
+ ],
+ "kikansha no mahou wa tokubetsu desu season 2": [
+  {
+   "id": 172192,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Kikansha no Mahou wa Tokubetsu desu 2nd Season",
+    "english": "A Returner's Magic Should be Special Season 2"
+   },
+   "synonyms": [
+    "Gwihwanjaui Mabeobeun",
+    "Teukbyeolhaeya Hamnida",
+    "귀환자의 마법은 특별해야 합니다"
+   ]
+  }
+ ],
+ "kusuriya no hitorigoto season 3": [
+  {
+   "id": 195516,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": 12,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto 3rd Season",
+    "english": "The Apothecary Diaries Season 3"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 218532,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Maomao no Hitorigoto 3rd Season",
+    "english": null
+   },
+   "synonyms": [
+    "Kusuriya no Hitorigoto 3rd Season Mini Anime",
+    "The Apothecary Diaries Season 3 Mini Anime",
+    "薬屋のひとりごと 第3期 ミニアニメ",
+    "The Apothecary Diaries: Maomao's Monologue Season 3"
+   ]
+  },
+  {
+   "id": 200927,
+   "format": "TV",
+   "seasonYear": 2027,
+   "season": "SPRING",
+   "status": "NOT_YET_RELEASED",
+   "episodes": 12,
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "title": {
+    "romaji": "Kusuriya no Hitorigoto 3rd Season Part 2",
+    "english": null
+   },
+   "synonyms": [
+    "The Apothecary Diaries Season 3 Part 2",
+    "The Apothecary Diaries Season 3 Cour 2"
+   ]
+  }
+ ],
+ "yasei no last boss ga arawareta season 2": [
+  {
+   "id": 204389,
+   "format": "ONA",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Yasei no Last Boss ga Arawareta! 2nd Season",
+    "english": "A Wild Last Boss Appeared! Season 2"
+   },
+   "synonyms": []
+  }
+ ],
+ "tensei kizoku kantei skill de nariagaru season 3": [
+  {
+   "id": 185756,
+   "format": "TV",
+   "seasonYear": 2026,
+   "season": "FALL",
+   "status": "RELEASING",
+   "episodes": null,
+   "genres": [
+    "Adventure",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season",
+    "english": "As a Reincarnated Aristocrat, I'll Use My Appraisal Skill to Rise in the World Season 3"
+   },
+   "synonyms": [
+    "KanteiSkill 3"
+   ]
+  }
+ ],
+ "demon slayer infinity castle": [
+  {
+   "id": 178788,
+   "format": "MOVIE",
+   "seasonYear": 2025,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Drama",
+    "Fantasy",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Kimetsu no Yaiba: Mugenjou-hen Movie 1 - Akaza Sairai",
+    "english": "Demon Slayer: Kimetsu no Yaiba Infinity Castle"
+   },
+   "synonyms": [
+    "Demon Slayer: Kimetsu no Yaiba La Forteresse infinie",
+    "Demon Slayer: Kimetsu no Yaiba Castelo Infinito",
+    "Клинок, Рассекающий Демонов: Бесконечный Замок"
+   ]
+  },
+  {
+   "id": 195200,
+   "format": "MOVIE",
+   "seasonYear": null,
+   "season": null,
+   "status": "NOT_YET_RELEASED",
+   "episodes": 1,
+   "genres": [
+    "Action",
+    "Adventure",
+    "Drama",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Kimetsu no Yaiba: Mugenjou-hen Movie 2",
+    "english": "Demon Slayer: Kimetsu no Yaiba Infinity Castle Part 2"
+   },
+   "synonyms": []
+  }
+ ],
+ "to be hero": [
+  {
+   "id": 97616,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Tu Bian Yingxiong BABA",
+    "english": "TO BE HERO"
+   },
+   "synonyms": [
+    "トゥ・ビー・ヒーロー"
+   ]
+  },
+  {
+   "id": 98575,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Tu Bian Yingxiong LEAF",
+    "english": "To Be Heroine"
+   },
+   "synonyms": [
+    "凸变英雄2",
+    "To Be Hero Leaf",
+    "To Be Hero 2",
+    "TBH2"
+   ]
+  },
+  {
+   "id": 156092,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 24,
+   "genres": [
+    "Action",
+    "Drama",
+    "Mystery",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Tu Bian Yingxiong X",
+    "english": "To Be Hero X"
+   },
+   "synonyms": [
+    "凸变英雄 第三季",
+    "To Be Hero 3",
+    "TBHX"
+   ]
+  },
+  {
+   "id": 11203,
+   "format": "TV_SHORT",
+   "seasonYear": 2000,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 104,
+   "genres": [
+    "Adventure",
+    "Comedy"
+   ],
+   "title": {
+    "romaji": "Hero Hero-kun",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 140622,
+   "format": "MOVIE",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Action"
+   ],
+   "title": {
+    "romaji": "HERO",
+    "english": "HERO"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 199430,
+   "format": "ONA",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 12,
+   "genres": [
+    "Comedy",
+    "Fantasy"
+   ],
+   "title": {
+    "romaji": "Cengjing You Yongshi",
+    "english": "So You're Raising a Warrior"
+   },
+   "synonyms": [
+    "용사가 있었는데요",
+    "There Was a Hero",
+    "Yongsa-ga Isseo-neundeyo",
+    "曾经有勇士"
+   ]
+  },
+  {
+   "id": 97769,
+   "format": "TV",
+   "seasonYear": 2017,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 6,
+   "genres": [
+    "Action",
+    "Drama",
+    "Fantasy",
+    "Mahou Shoujo",
+    "Psychological",
+    "Slice of Life"
+   ],
+   "title": {
+    "romaji": "Yuuki Yuuna wa Yuusha de Aru: Yuusha no Shou",
+    "english": "Yuki Yuna is a Hero: The Hero Chapter"
+   },
+   "synonyms": []
+  },
+  {
+   "id": 15525,
+   "format": "MUSIC",
+   "seasonYear": null,
+   "season": null,
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [],
+   "title": {
+    "romaji": "Bokura no Hero",
+    "english": null
+   },
+   "synonyms": [
+    "Minna no Uta"
+   ]
+  },
+  {
+   "id": 20655,
+   "format": "TV",
+   "seasonYear": 2014,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 51,
+   "genres": [
+    "Action",
+    "Comedy",
+    "Sci-Fi"
+   ],
+   "title": {
+    "romaji": "Hero Bank",
+    "english": null
+   },
+   "synonyms": []
+  },
+  {
+   "id": 105096,
+   "format": "ONA",
+   "seasonYear": 2018,
+   "season": "FALL",
+   "status": "FINISHED",
+   "episodes": 15,
+   "genres": [
+    "Action",
+    "Mystery",
+    "Sci-Fi",
+    "Thriller"
+   ],
+   "title": {
+    "romaji": "HERO MASK",
+    "english": "HERO MASK"
+   },
+   "synonyms": []
+  }
+ ]
+}

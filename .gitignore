@@ -1,0 +1,21 @@
+# Rust build output
+/target/
+**/*.rs.bk
+
+# Packaged release (scripts/package.ps1)
+/dist/
+
+# Local env / secrets
+.env
+.env.local
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
