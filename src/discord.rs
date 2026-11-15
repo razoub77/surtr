@@ -119,11 +119,17 @@ pub fn activity_payload(presence: Option<&Presence>, pid: u32, nonce: u64) -> Va
             }
             activity["timestamps"] = timestamps;
         }
-        // Arbitrary public https URLs work as `large_image` (Discord's media
-        // proxy); no asset upload needed. `large_text` is the hover text.
+        // AniList's CDN URL does not go straight to Discord: route it through
+        // the free WordPress Photon image proxy (`i0.wp.com`, `?resize=1024,1024`)
+        // to resize and center-crop on the fly, no asset upload needed.
+        // `large_text` is the hover text.
         if let Some(cover) = &p.cover {
+            let proxy = format!(
+                "https://i0.wp.com/{}?resize=1024,1024",
+                cover.strip_prefix("https://").unwrap_or(cover)
+            );
             activity["assets"] = json!({
-                "large_image": cover,
+                "large_image": proxy,
                 "large_text": clip(&p.hover),
                 "large_url": anilist_url,
             });

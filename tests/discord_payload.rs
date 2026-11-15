@@ -85,7 +85,7 @@ fn a_movie_activity_carries_the_cover_art_and_a_bar_without_an_episode_line() {
     assert_eq!(activity["timestamps"]["end"], 1_700_000_600);
     assert_eq!(
         activity["assets"]["large_image"],
-        "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/97962.jpg"
+        "https://i0.wp.com/s4.anilist.co/file/anilistcdn/media/anime/cover/large/97962.jpg?resize=1024,1024"
     );
     // Hovering the cover shows the metadata line; clicking it opens AniList.
     assert_eq!(
@@ -130,6 +130,27 @@ fn an_oversized_title_is_clipped_to_discords_field_limit() {
     assert_eq!(
         activity["assets"]["large_text"],
         "The Laid-Off Cheat-Granting Mage Enjoys a Second Lease on Life"
+    );
+}
+
+#[test]
+fn a_cover_is_routed_through_the_photon_image_proxy() {
+    let presence = Presence {
+        id: 191656,
+        details: "Sousou no Frieren".into(),
+        hover: "TV • Ongoing • Fall 2023 • Adventure, Drama, Fantasy".into(),
+        state: Some("▶️ Playing • Episode 1/28".into()),
+        cover: Some("https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx191656-xFHtxM8SUTdU.png".into()),
+        start_ms: Some(1_700_000_000_000),
+        end_ms: Some(1_700_000_600_000),
+    };
+
+    let activity = activity_payload(Some(&presence), 1, 4);
+    let activity = &activity["args"]["activity"];
+
+    assert_eq!(
+        activity["assets"]["large_image"],
+        "https://i0.wp.com/s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx191656-xFHtxM8SUTdU.png?resize=1024,1024"
     );
 }
 

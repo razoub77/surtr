@@ -89,7 +89,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 - Published Rich Presence payload follows Discord's Activity structure:
   - `details`: The card's main title (the configured `details_title_lang` title, the other language as fallback).
   - `state`: `▶️ Playing • Episode x/y` while playing, `⏸️ Paused • Episode x/y` while paused (`x/?` when the total is unknown or smaller than the episode; a one-episode entry shows the bare `Episode 1`; a file with no episode data — an unnumbered movie or OVA — shows the play/pause word alone while paused and no `state` while playing).
-  - `assets.large_image`: Public AniList cover art URL.
+  - `assets.large_image`: AniList cover art URL routed through the free WordPress Photon image proxy (`https://i0.wp.com/<target-without-scheme>?resize=1024,1024`), which resizes and center-crops on the fly and does not block `anilist.co`.
   - `assets.large_text`: The metadata line `{Format} • {Status} • {Season} • {Genres}` (each segment omitted when the entry lacks it; the title stands in when none of the four render), instead of a second title.
   - `timestamps`: `start = now - (pos / speed)` and `end = now + ((duration - pos) / speed)`.
 - Playing state publishes timestamps; paused state omits `timestamps` completely and leads `state` with `⏸️ Paused` instead of `▶️ Playing` to prevent the Discord client from rendering an inaccurate advancing progress bar.
