@@ -1,6 +1,6 @@
 [package]
 name = "surtr"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Surtr daemon: observes mpv over JSON IPC and publishes anime Rich Presence to Discord"
 license = "MIT"
