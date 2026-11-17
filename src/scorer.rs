@@ -4,14 +4,17 @@
 //! `.scratch/surtr/research/match-quality.md`: an exact normalized title match
 //! scores 1.0, token containment 0.85, fuzzy similarity below that, plus small
 //! format and release-year bonuses. A Match is accepted only when the best
-//! score clears 0.85 and beats the runner-up by at least 0.10 — ties are never
-//! broken arbitrarily.
+//! score clears 0.85 and beats the runner-up by at least 0.10. Identical best
+//! scores are never broken arbitrarily, with one measured exception: for a
+//! season-1 or unmarked file, a tie falls to the single tied Candidate whose
+//! titles carry no season ordinal — the franchise's Root Season.
 //!
 //! The thresholds and bonus sizes are coupled: 1.0 − 0.85 = 0.15 is what lets
 //! an exact match clear the margin over a containment match. Change them
 //! together, and re-measure against the corpus.
 
 use crate::anilist::Candidate;
+use crate::release;
 
 /// Best accepted score floor.
 pub const ACCEPT: f64 = 0.85;
@@ -57,6 +60,10 @@ pub struct Context {
     pub year: Option<u32>,
     pub movie: bool,
     pub episodic: bool,
+    /// The season marker the Release Filename carried; `None` is unmarked,
+    /// which matching treats as season 1. Only a season-1 or unmarked file
+    /// lets a tie fall to the Root Season.
+    pub season: Option<u32>,
 }
 
 /// Normalizes text for comparison: lowercase, accents folded, punctuation
@@ -211,12 +218,8 @@ fn score(
     (raw + bonus(candidate, context)).clamp(0.0, 1.0)
 }
 
-/// Selects the Match from a search result set, or None.
-pub fn select<'a>(
-    query: &str,
-    candidates: &'a [Candidate],
-    context: &Context,
-) -> Option<&'a Candidate> {
+/// Every Candidate's final score for this query.
+fn final_scores(query: &str, candidates: &[Candidate], context: &Context) -> Vec<f64> {
     let query_norm = tokens(query).join(" ");
     let query_sig = significant(query);
 
@@ -238,10 +241,39 @@ pub fn select<'a>(
     };
     let use_synonyms = raw_scores(false).iter().all(|raw| *raw < 1.0 - EPS);
 
-    let scores = candidates
+    candidates
         .iter()
         .map(|candidate| score(&query_norm, &query_sig, candidate, use_synonyms, context))
-        .collect::<Vec<_>>();
+        .collect()
+}
+
+/// What a scored search result set yields.
+#[derive(Debug)]
+pub enum Selection<'a> {
+    /// One Candidate is the Match: it cleared the margin, or it was the only
+    /// tied Candidate whose titles carry no season ordinal.
+    One(&'a Candidate),
+    /// Candidates tied at the best score. Only a Root Season proof over the
+    /// `SEQUEL` chain can settle them.
+    Tied(Vec<&'a Candidate>),
+    /// No Candidate is acceptable.
+    None,
+}
+
+impl<'a> Selection<'a> {
+    /// The Match, if this Selection has one: a tie is not a Match.
+    pub fn one(self) -> Option<&'a Candidate> {
+        match self {
+            Selection::One(candidate) => Some(candidate),
+            Selection::Tied(_) | Selection::None => None,
+        }
+    }
+}
+
+/// Scores a search result set once and reports the choice: a Match, the tie a
+/// Root Season proof may settle, or no acceptable Candidate.
+pub fn choose<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -> Selection<'a> {
+    let scores = final_scores(query, candidates, context);
 
     let best = scores.iter().cloned().fold(0.0_f64, f64::max);
     // The runner-up is the second-highest score value; with a single
@@ -253,12 +285,56 @@ pub fn select<'a>(
         sorted.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
         sorted[1]
     };
-
-    (best >= ACCEPT - EPS && best - runner_up >= MARGIN - EPS).then(|| {
+    if best < ACCEPT - EPS {
+        return Selection::None;
+    }
+    if best - runner_up >= MARGIN - EPS {
         let index = scores
             .iter()
             .position(|score| (*score - best).abs() < EPS)
             .unwrap_or(0);
-        &candidates[index]
-    })
+        return Selection::One(&candidates[index]);
+    }
+    // A season-1 or unmarked file whose Candidates tie at the best score: the
+    // franchise's Root Season is the default, and it is the one tied Candidate
+    // whose titles carry no season ordinal (`Honzuki no Gekokujou` beside its
+    // `2nd`, `3rd`, `4th` and `5th Season` entries). Two such Candidates stay
+    // a tie for the `SEQUEL` chain to settle.
+    let mut seen = std::collections::HashSet::new();
+    let tied: Vec<&Candidate> = candidates
+        .iter()
+        .zip(&scores)
+        .filter(|(_, score)| (**score - best).abs() < EPS)
+        .map(|(candidate, _)| candidate)
+        .filter(|candidate| seen.insert(candidate.id))
+        .collect();
+    if tied.len() > 1 && context.season.is_none_or(|season| season == 1) {
+        let roots: Vec<&Candidate> = tied
+            .iter()
+            .copied()
+            .filter(|candidate| root_ordinal_free(candidate))
+            .collect();
+        if roots.len() == 1 {
+            return Selection::One(roots[0]);
+        }
+        return Selection::Tied(tied);
+    }
+    Selection::None
+}
+
+/// Selects the Match from a search result set, or None.
+pub fn select<'a>(
+    query: &str,
+    candidates: &'a [Candidate],
+    context: &Context,
+) -> Option<&'a Candidate> {
+    choose(query, candidates, context).one()
+}
+
+/// Whether any of the Candidate's titles carries a season ordinal above 1:
+/// such an entry is a later season, never the Root Season.
+fn root_ordinal_free(candidate: &Candidate) -> bool {
+    titles(candidate, true)
+        .iter()
+        .all(|title| release::title_season(title).is_none_or(|season| season == 1))
 }

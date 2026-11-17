@@ -679,6 +679,122 @@ fn a_sequel_to_an_ignored_format_yields_no_presence() {
 }
 
 // ---------------------------------------------------------------------------
+// Root Season: a tie the ordinal cannot settle walks the SEQUEL chain
+// ---------------------------------------------------------------------------
+
+/// The Honzuki shape: tied seasons whose titles never spell an ordinal (a
+/// sequel named by its own subtitle only), so the offline ordinal rung cannot
+/// pick the Root Season.
+fn tied_seasons() -> Vec<Candidate> {
+    vec![
+        tv(
+            108268,
+            "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen",
+            Some(14),
+        ),
+        tv(
+            171110,
+            "Honzuki no Gekokujou: Ryoushu no Youjo",
+            Some(12),
+        ),
+        tv(
+            217712,
+            "Honzuki no Gekokujou: Kizoku-in no Jishou Tosho Iin",
+            Some(12),
+        ),
+    ]
+}
+
+const TIE_PATH: &str =
+    r"D:\!Anime\Honzuki no Gekokujou\Honzuki no Gekokujou S1\S01E01-A World Without Books.mkv";
+
+#[test]
+fn a_tie_no_ordinal_can_settle_walks_to_the_root_season() {
+    let candidates = tied_seasons();
+    let mut source = FixtureSource::new(&[("Honzuki no Gekokujou", candidates.clone())])
+        .with_sequels(&[
+            (108268, vec![candidates[1].clone()]),
+            (171110, vec![candidates[2].clone()]),
+        ]);
+    let metadata = lookup(&mut source, TIE_PATH).expect("the chain names the Root Season");
+    assert_eq!(metadata.id, 108268);
+    assert_eq!(metadata.episode, Some("Episode 1/14".into()));
+    assert!(
+        source.sequel_queries.contains(&108268),
+        "the tie-break reads the chain"
+    );
+}
+
+#[test]
+fn a_tie_settled_by_an_ordinal_costs_no_relations_request() {
+    let mut source = FixtureSource::new(&[(
+        "Show Alpha",
+        vec![
+            tv(1, "Show Alpha: The Origin", Some(12)),
+            tv(2, "Show Alpha: The Origin 2nd Season", Some(12)),
+        ],
+    )]);
+    let metadata = lookup(&mut source, r"D:\!Anime\Show Alpha\[X] Show Alpha - 01.mkv")
+        .expect("the ordinal names the Root Season");
+    assert_eq!(metadata.id, 1);
+    assert!(source.sequel_queries.is_empty());
+}
+
+#[test]
+fn a_tie_with_two_ancestors_stays_unresolved() {
+    // A cycle: each Candidate's chain reaches the other, so neither is the
+    // one root. Never pick arbitrarily.
+    let mut source = FixtureSource::new(&[(
+        "Show",
+        vec![tv(1, "Show Alpha", Some(12)), tv(2, "Show Beta", Some(12))],
+    )])
+    .with_sequels(&[
+        (1, vec![tv(2, "Show Beta", Some(12))]),
+        (2, vec![tv(1, "Show Alpha", Some(12))]),
+    ]);
+    assert_eq!(
+        lookup(&mut source, r"D:\!Anime\Show\[X] Show - 01.mkv"),
+        None
+    );
+}
+
+#[test]
+fn a_failed_relations_request_during_the_tie_is_no_answer() {
+    // The search answered; the Root Season proof did not. As with the
+    // absolute-episode walk, a failed request carries no Miss and no report.
+    let mut source = FixtureSource::new(&[(
+        "Show",
+        vec![tv(1, "Show Alpha", Some(12)), tv(2, "Show Beta", Some(12))],
+    )]);
+    source.fail_sequels = true;
+    assert!(matches!(
+        Matcher::new(&mut source).lookup(r"D:\!Anime\Show\[X] Show - 01.mkv"),
+        Lookup::Unavailable
+    ));
+}
+
+#[test]
+fn a_later_season_tie_never_walks_for_the_root() {
+    let mut source = FixtureSource::new(&[(
+        "Show Season 2",
+        vec![
+            tv(1, "Show 2nd Season Alpha", Some(12)),
+            tv(2, "Show 2nd Season Beta", Some(12)),
+        ],
+    )]);
+    assert_eq!(
+        miss_of(&mut source, r"D:\!Anime\Show S2\[X] Show S2 - 01.mkv"),
+        Some(Miss::Repairable {
+            key: "show season 2".into()
+        })
+    );
+    assert!(
+        source.sequel_queries.is_empty(),
+        "a later season's tie is not a Root Season question"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Overrides
 // ---------------------------------------------------------------------------
 

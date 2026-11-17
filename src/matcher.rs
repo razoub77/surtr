@@ -71,6 +71,10 @@ impl From<SourceError> for Lookup {
 /// not a season-relative number.
 const MAX_SEASON_EPISODES: u32 = 999;
 
+/// Relations requests one Root Season proof may spend. A wider or longer
+/// franchise keeps the tie unresolved rather than drain the rate limit.
+const MAX_TIE_REQUESTS: usize = 16;
+
 /// Which AniList title language leads the card's main title: the entry's
 /// other language stands in when the preferred one is missing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -157,6 +161,7 @@ impl<S: MediaSource> Matcher<S> {
             year: parsed.year,
             movie: parsed.movie,
             episodic: parsed.episode.is_some(),
+            season: parsed.season,
         };
         // The folder's spelling is the last query, and only a run of zero
         // results reaches it: a query that returned any Candidate is evidence
@@ -211,8 +216,20 @@ impl<S: MediaSource> Matcher<S> {
                 continue;
             }
             zero = false;
-            if let Some(candidate) = scorer::select(query, &candidates, &context) {
-                return settle(deferred, self.resolve(&candidate, &parsed));
+            match scorer::choose(query, &candidates, &context) {
+                scorer::Selection::One(candidate) => {
+                    return settle(deferred, self.resolve(candidate, &parsed));
+                }
+                // A tie no ordinal settled is the Root Season question: prove
+                // it along the `SEQUEL` chain rather than guess.
+                scorer::Selection::Tied(tied) => match self.root_season(&tied) {
+                    Ok(Some(root)) => return settle(deferred, self.resolve(root, &parsed)),
+                    // A throttle or failed request is no answer, as anywhere
+                    // else: the lookup carries it, not a Miss.
+                    Err(error) => return settle(deferred, error.into()),
+                    Ok(None) => {}
+                },
+                scorer::Selection::None => {}
             }
         }
         // A query that got no answer at all is a transport failure, not a
@@ -298,6 +315,60 @@ impl<S: MediaSource> Matcher<S> {
                 reason: "the matched entry carries no usable title".to_owned(),
             }),
         }
+    }
+
+    /// The Root Season for a tie no ordinal could settle: the tied Candidate
+    /// whose `SEQUEL` chain reaches every other tied one. Two such Candidates
+    /// (a cycle) are no answer.
+    fn root_season<'a>(
+        &mut self,
+        tied: &[&'a Candidate],
+    ) -> Result<Option<&'a Candidate>, SourceError> {
+        let ids: HashSet<i64> = tied.iter().map(|candidate| candidate.id).collect();
+        if ids.len() < 2 {
+            return Ok(None);
+        }
+        let mut budget = MAX_TIE_REQUESTS;
+        let mut root = None;
+        for candidate in tied {
+            let chain = self.sequel_chain(candidate.id, &mut budget)?;
+            if ids
+                .iter()
+                .all(|id| *id == candidate.id || chain.contains(id))
+            {
+                if root.is_some() {
+                    return Ok(None);
+                }
+                root = Some(*candidate);
+            }
+        }
+        Ok(root)
+    }
+
+    /// Every id reachable from `id` along a unique `SEQUEL` chain. A branch,
+    /// a cycle or the request budget stops the walk: the ids gathered so far
+    /// still prove the root when they cover every tied Candidate, and never
+    /// guess beyond that.
+    fn sequel_chain(&mut self, id: i64, budget: &mut usize) -> Result<Vec<i64>, SourceError> {
+        let mut chain = Vec::new();
+        let mut current = id;
+        let mut visited = HashSet::from([id]);
+        while *budget > 0 {
+            *budget -= 1;
+            let mut sequels = self.source.sequels(current)?;
+            sequels.sort_by_key(|sequel| sequel.id);
+            sequels.dedup_by_key(|sequel| sequel.id);
+            if sequels.len() != 1 {
+                break;
+            }
+            let next = sequels.remove(0);
+            if !visited.insert(next.id) {
+                break;
+            }
+            chain.push(next.id);
+            current = next.id;
+        }
+        Ok(chain)
     }
 
     /// Walks `SEQUEL` relations from the Root Season along the unique chain,

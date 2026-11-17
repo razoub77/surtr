@@ -6,7 +6,9 @@
 //!
 //! Expectations come from the measured pipeline in
 //! `.scratch/surtr/research/match-quality.md` (agreed scorer, margin ≥ 0.10):
-//! 45 rows accept their expected entry, rows 4/20/28 yield no Match. Rows
+//! 46 rows accept their expected entry, rows 4/20 yield no Match. Row 28's
+//! five tie seasons fall to the Root Season (the one tied Candidate with no
+//! season ordinal). Rows
 //! 41/44/45/46 are absolute-numbered: the Parsed Episode exceeds the Root
 //! Season's total, the `SEQUEL` walk finds the containing season, and the
 //! episode is remapped to the Season Episode (Oshi no Ko 2nd Season, Kusuriya
@@ -230,8 +232,9 @@ const ROWS: &[(u8, Row)] = &[
     ),
     (
         28,
-        none(
+        ok(
             r"D:\!Anime\Honzuki no Gekokujou\Honzuki no Gekokujou S1\S01E01-A World Without Books.mkv",
+            108268,
         ),
     ),
     (

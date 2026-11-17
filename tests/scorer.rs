@@ -28,6 +28,7 @@ fn ctx() -> Context {
         year: None,
         movie: false,
         episodic: true,
+        season: None,
     }
 }
 
@@ -68,6 +69,67 @@ fn a_score_tie_never_resolves() {
 }
 
 #[test]
+fn a_sub_floor_tie_is_never_rescued_by_the_root_season() {
+    // Both titles stay below ACCEPT; a synonym naming a later season must not
+    // make the other the Match. The floor binds the tie rung too.
+    let later = Candidate {
+        synonyms: vec!["Chii's Sweet Home Season 2".into()],
+        ..candidate(2, "Chii's Sweet Home")
+    };
+    let candidates = [candidate(1, "Chii's Sweet Home"), later];
+    assert_eq!(scorer::select("chii fuyo", &candidates, &ctx()), None);
+}
+
+#[test]
+fn a_tie_for_a_season_1_file_falls_to_the_root_season() {
+    // Corpus row 28: the folder's `Honzuki no Gekokujou S1` queries the plain
+    // franchise name, so four TV seasons contain it equally at 0.87; only the
+    // first carries no season ordinal in any title.
+    let later = |id: i64, romaji: &str, synonym: &str| Candidate {
+        synonyms: vec![synonym.into()],
+        ..candidate(id, romaji)
+    };
+    let candidates = [
+        candidate(
+            108268,
+            "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen",
+        ),
+        later(
+            113693,
+            "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 2nd Season",
+            "Ascendance of a Bookworm Season 2",
+        ),
+        later(
+            121176,
+            "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 3rd Season",
+            "Ascendance of a Bookworm Season 3",
+        ),
+        later(
+            171110,
+            "Honzuki no Gekokujou: Ryoushu no Youjo",
+            "Ascendance of a Bookworm Season 4",
+        ),
+    ];
+    let selected = scorer::select("honzuki no gekokujou", &candidates, &ctx());
+    assert_eq!(selected.map(|c| c.id), Some(108268));
+}
+
+#[test]
+fn a_tie_does_not_fall_to_the_root_season_for_a_later_season() {
+    // An explicit `Season 2` file may tie too, but the Root Season default is
+    // a season-1 answer only: a later season's tie stays unresolved.
+    let candidates = [
+        candidate(1, "Some Show Alpha"),
+        candidate(2, "Some Show Part II"),
+    ];
+    let context = Context {
+        season: Some(2),
+        ..ctx()
+    };
+    assert_eq!(scorer::select("some show", &candidates, &context), None);
+}
+
+#[test]
 fn a_small_margin_is_rejected() {
     // 1.0 vs 0.926 is inside the 0.10 margin.
     let top = candidate(142193, "Eiyuu Ou, Bu o Kiwameru Tame Tenseisu: Soshite, Sekai Saikyou no Minarai Kishi");
@@ -101,6 +163,7 @@ fn the_release_year_is_a_small_bonus() {
         year: Some(2007),
         movie: false,
         episodic: false,
+        season: None,
     };
     // Containment + year = 0.88 vs rival containment 0.85: margin 0.03 is
     // still inside 0.10, so this stays a reject — the bonus is small.
@@ -117,6 +180,7 @@ fn a_penalized_containment_hit_is_not_rescued_by_a_synonym() {
         year: None,
         movie: true,
         episodic: false,
+        season: None,
     };
     let penalized = Candidate {
         format: Some("TV".into()),
@@ -199,6 +263,7 @@ fn format_conflict_penalizes_and_drops_below_the_floor() {
         year: None,
         movie: true,
         episodic: false,
+        season: None,
     };
     let candidates = [candidate(1, "Sword Art Online Ordinal Scale Recap")];
     assert_eq!(scorer::select("sword art online ordinal scale", &candidates, &context), None);
@@ -212,6 +277,7 @@ fn the_movie_bonus_breaks_a_knife_edge_margin() {
         year: None,
         movie: true,
         episodic: false,
+        season: None,
     };
     let movie = Candidate {
         format: Some("MOVIE".into()),
