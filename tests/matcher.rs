@@ -1,11 +1,11 @@
-//! Matching tests: a played path in, one Metadata (or None) out, over an
-//! injected MediaSource of recorded Candidates. No network.
+//! Matching tests: a played path in, one Lookup Answer out, over an injected
+//! MediaSource of recorded Candidates. No network.
 
 use std::collections::HashMap;
 
 use surtr::anilist::{Candidate, Titles};
-use surtr::daemon::{Metadata, MetadataClient, Miss};
-use surtr::matcher::{Matcher, MediaSource, TitleLanguage};
+use surtr::daemon::{Lookup, Metadata, MetadataClient, Miss};
+use surtr::matcher::{Matcher, MediaSource, SourceError, TitleLanguage};
 use surtr::overrides::Overrides;
 use surtr::scorer;
 
@@ -50,27 +50,29 @@ impl FixtureSource {
 }
 
 impl MediaSource for FixtureSource {
-    fn search(&mut self, query: &str) -> Option<Vec<Candidate>> {
+    fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
         self.queries.push(query.to_owned());
-        Some(
-            self.fixtures
-                .get(&scorer::normalize(query))
-                .cloned()
-                .unwrap_or_default(),
-        )
+        Ok(self
+            .fixtures
+            .get(&scorer::normalize(query))
+            .cloned()
+            .unwrap_or_default())
     }
 
-    fn sequels(&mut self, id: i64) -> Option<Vec<Candidate>> {
+    fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
         self.sequel_queries.push(id);
         if self.fail_sequels {
-            return None;
+            return Err(SourceError::Unavailable);
         }
-        Some(self.sequels.get(&id).cloned().unwrap_or_default())
+        Ok(self.sequels.get(&id).cloned().unwrap_or_default())
     }
 
-    fn entry(&mut self, id: i64) -> Option<Candidate> {
+    fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         self.entry_queries.push(id);
-        self.entries.get(&id).cloned()
+        self.entries
+            .get(&id)
+            .cloned()
+            .ok_or(SourceError::Unavailable)
     }
 }
 
@@ -92,9 +94,13 @@ fn candidate(id: i64, romaji: &str) -> Candidate {
     }
 }
 
+/// The Metadata of a Match: `None` when the lookup answered anything else
+/// (this source never throttles or fails, so a miss here is a `Missed`).
 fn lookup(source: &mut FixtureSource, path: &str) -> Option<Metadata> {
-    let mut matcher = Matcher::new(source);
-    matcher.lookup(path)
+    match Matcher::new(source).lookup(path) {
+        Lookup::Matched(metadata) => Some(metadata),
+        _ => None,
+    }
 }
 
 /// Looks up with a startup-loaded title language preference.
@@ -103,8 +109,10 @@ fn lookup_with_lang(
     language: TitleLanguage,
     path: &str,
 ) -> Option<Metadata> {
-    let mut matcher = Matcher::new(source).with_title_language(language);
-    matcher.lookup(path)
+    match Matcher::new(source).with_title_language(language).lookup(path) {
+        Lookup::Matched(metadata) => Some(metadata),
+        _ => None,
+    }
 }
 
 /// Looks up with a startup-loaded overrides map.
@@ -113,8 +121,10 @@ fn lookup_with(
     overrides: Overrides,
     path: &str,
 ) -> Option<Metadata> {
-    let mut matcher = Matcher::new(source).with_overrides(overrides);
-    matcher.lookup(path)
+    match Matcher::new(source).with_overrides(overrides).lookup(path) {
+        Lookup::Matched(metadata) => Some(metadata),
+        _ => None,
+    }
 }
 
 /// A TV Candidate with an explicit episode total (`None` = unknown).
@@ -864,11 +874,12 @@ fn a_dead_folder_query_still_reports_the_files_own_title() {
 // Miss reports: why a lookup found no Match (issue 07)
 // ---------------------------------------------------------------------------
 
-/// Looks a path up and returns why it missed, if the matcher can say.
+/// Looks a path up and returns why it missed, when the answer is a Miss.
 fn miss_of(source: &mut FixtureSource, path: &str) -> Option<Miss> {
-    let mut matcher = Matcher::new(source);
-    matcher.lookup(path);
-    matcher.miss()
+    match Matcher::new(source).lookup(path) {
+        Lookup::Missed(miss) => Some(miss),
+        _ => None,
+    }
 }
 
 #[test]
@@ -970,26 +981,28 @@ fn an_ova_is_a_fatal_miss() {
 fn a_match_clears_any_previous_miss() {
     let mut source = FixtureSource::new(&[("Monster", vec![candidate(19, "MONSTER")])]);
     let mut matcher = Matcher::new(&mut source);
-    assert!(matcher
-        .lookup(r"D:\!Anime\Unknown Show\[X] Unknown Show - 01.mkv")
-        .is_none());
-    assert!(matcher.miss().is_some());
-    assert!(matcher.lookup(r"D:\!Anime\Monster\[X] Monster - 01.mkv").is_some());
-    assert_eq!(matcher.miss(), None, "a Match is no miss");
+    assert!(matches!(
+        matcher.lookup(r"D:\!Anime\Unknown Show\[X] Unknown Show - 01.mkv"),
+        Lookup::Missed(_)
+    ));
+    assert!(matches!(
+        matcher.lookup(r"D:\!Anime\Monster\[X] Monster - 01.mkv"),
+        Lookup::Matched(_)
+    ));
 }
 
 /// A source whose every request fails: a transport error, not an answer.
 struct Unreachable;
 
 impl MediaSource for Unreachable {
-    fn search(&mut self, _query: &str) -> Option<Vec<Candidate>> {
-        None
+    fn search(&mut self, _query: &str) -> Result<Vec<Candidate>, SourceError> {
+        Err(SourceError::Unavailable)
     }
-    fn sequels(&mut self, _id: i64) -> Option<Vec<Candidate>> {
-        None
+    fn sequels(&mut self, _id: i64) -> Result<Vec<Candidate>, SourceError> {
+        Err(SourceError::Unavailable)
     }
-    fn entry(&mut self, _id: i64) -> Option<Candidate> {
-        None
+    fn entry(&mut self, _id: i64) -> Result<Candidate, SourceError> {
+        Err(SourceError::Unavailable)
     }
 }
 
@@ -997,10 +1010,9 @@ impl MediaSource for Unreachable {
 fn a_failed_request_is_no_answer_and_reports_nothing() {
     let mut source = Unreachable;
     let mut matcher = Matcher::new(&mut source);
-    assert!(matcher.lookup(r"D:\!Anime\Show\[X] Show - 01.mkv").is_none());
     assert_eq!(
-        matcher.miss(),
-        None,
+        matcher.lookup(r"D:\!Anime\Show\[X] Show - 01.mkv"),
+        Lookup::Unavailable,
         "a transport failure is not a definitive miss"
     );
 }
@@ -1013,6 +1025,8 @@ fn a_failed_relations_request_reports_nothing() {
         .with_sequels(&[(1, vec![tv(2, "Show 2nd Season", Some(12))])]);
     source.fail_sequels = true;
     let mut matcher = Matcher::new(&mut source);
-    assert!(matcher.lookup(r"D:\!Anime\Show\[X] Show - 25.mkv").is_none());
-    assert_eq!(matcher.miss(), None);
+    assert_eq!(
+        matcher.lookup(r"D:\!Anime\Show\[X] Show - 25.mkv"),
+        Lookup::Unavailable
+    );
 }

@@ -60,8 +60,8 @@ pub const CLAIM_SETTLE_MS: Millis = 400;
 /// The shipped [`Policy::claim_poll_ms`].
 pub const CLAIM_POLL_MS: Millis = 250;
 
-/// Resolved display metadata for a played file. `None` means no Match, and no
-/// Match means no Presence.
+/// Resolved display metadata for a played file: the body of a
+/// [`Lookup::Matched`]. No Match means no Presence.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Metadata {
     /// The AniList id of the Match.
@@ -80,22 +80,44 @@ pub struct Metadata {
     pub cover: Option<String>,
 }
 
+/// The one answer to one lookup of a Release Filename (the glossary's Lookup
+/// Answer). One lookup can meet several fates — one query throttled, the
+/// next a lost score-off — and answers with the strongest by precedence: a
+/// [`Lookup::Matched`] wins outright (a card now outranks a stale throttle
+/// signal), then [`Lookup::RateLimited`], then [`Lookup::Missed`], then
+/// [`Lookup::Unavailable`] (the retry must not be swallowed by a report,
+/// and the report not by silence). The client constructs the answer; the
+/// core only interprets it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Lookup {
+    /// A Match: Presence follows.
+    Matched(Metadata),
+    /// A definitive Miss: no Presence, and the report names why.
+    Missed(Miss),
+    /// AniList throttled a request: the lookup is deferred and retried once
+    /// after this many milliseconds. Not a Miss — the file has no answer
+    /// yet, so nothing is reported.
+    RateLimited(Millis),
+    /// A failed request (transport or an unusable response): no Presence
+    /// and no report. The lookup has no answer and no reason to name.
+    Unavailable,
+}
+
+impl Lookup {
+    /// The Miss a definitive answer carries; a rate limit and a bare
+    /// failure report nothing.
+    fn into_miss(self) -> Option<Miss> {
+        match self {
+            Lookup::Missed(miss) => Some(miss),
+            _ => None,
+        }
+    }
+}
+
 /// Looks up a played file. The production client queries AniList/cache
-/// (ticket 03); tests inject recorded responses.
+/// (ticket 03); tests inject recorded answers.
 pub trait MetadataClient {
-    fn lookup(&mut self, path: &str) -> Option<Metadata>;
-
-    /// The `Retry-After` delay when the most recent lookup was rate limited
-    /// (HTTP 429). The core schedules one deferred retry for that file.
-    fn retry_after(&self) -> Option<Millis> {
-        None
-    }
-
-    /// Why the most recent lookup found no Match, when the client can say.
-    /// `None` means the failure carries no report for the user.
-    fn miss(&self) -> Option<Miss> {
-        None
-    }
+    fn lookup(&mut self, path: &str) -> Lookup;
 }
 
 /// Why a lookup found no Match (issue 07). The rule of thumb: a repairable
@@ -744,28 +766,30 @@ impl<'a> Step<'a> {
         out: &mut Outcome,
     ) {
         match self.metadata.lookup(&path) {
-            Some(metadata) => {
+            Lookup::Matched(metadata) => {
                 self.retry = None;
                 self.current = Some(CurrentMatch { path, metadata });
                 self.enabled = enabled;
                 self.trigger_publish();
             }
-            None => {
+            // A 429 is not a definitive miss: one deferred retry honours
+            // Retry-After, and the report waits for the retry that actually
+            // answers (issue 07).
+            Lookup::RateLimited(delay) if !is_retry => {
                 self.current = None;
                 self.request_clear(now);
-                // A 429 is not a definitive miss: one deferred retry honours
-                // Retry-After, and the report waits for the retry that
-                // actually fails (issue 07). A second failure is no Presence.
-                if !is_retry {
-                    if let Some(delay) = self.metadata.retry_after() {
-                        self.retry = Some(Retry {
-                            path,
-                            at: now.saturating_add(delay.max(0)),
-                        });
-                        return;
-                    }
-                }
-                self.report_miss(&path, enabled, out);
+                self.retry = Some(Retry {
+                    path,
+                    at: now.saturating_add(delay.max(0)),
+                });
+            }
+            answer => {
+                self.current = None;
+                self.request_clear(now);
+                // A 429 on an already-spent retry is still no answer: no
+                // Presence, and nothing to report. A second failure is no
+                // Presence either.
+                self.report_miss(&path, enabled, answer.into_miss(), out);
             }
         }
     }
@@ -773,15 +797,17 @@ impl<'a> Step<'a> {
     /// The one failure report per loaded file (issue 07): a repairable miss
     /// is a console line then a 5 s OSD naming the override key, a fatal miss
     /// is a console line only, and a file loaded behind the Toggle-off stays
-    /// silent. Seek, pause and a Toggle-on never re-report it.
-    fn report_miss(&mut self, path: &str, enabled: bool, out: &mut Outcome) {
+    /// silent. An answer with no Miss (a failed request, or a throttle whose
+    /// retry was already spent) burns the report but prints nothing. Seek,
+    /// pause and a Toggle-on never re-report it.
+    fn report_miss(&mut self, path: &str, enabled: bool, miss: Option<Miss>, out: &mut Outcome) {
         if self.reported_miss.as_deref() == Some(path) {
             return;
         }
         // The report is spent even when suppressed: a re-announce of the same
         // file (startup read plus `file-loaded`) must not nag later.
         self.reported_miss = Some(path.to_owned());
-        let Some(miss) = self.metadata.miss() else {
+        let Some(miss) = miss else {
             return;
         };
         if !enabled {

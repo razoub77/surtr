@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anilist::Candidate;
 use crate::clock::{Clock, Millis};
-use crate::matcher::MediaSource;
+use crate::matcher::{MediaSource, SourceError};
 use crate::scorer;
 
 /// The cache document format. A different version starts from empty. Version
@@ -165,7 +165,7 @@ fn remember<T, K: Ord>(map: &mut BTreeMap<K, Record<T>>, key: K, value: T, now: 
 }
 
 /// A [`MediaSource`] that answers fresh cache hits itself and fills the cache
-/// only with real answers: `None` (a failed request) is never persisted.
+/// only with real answers: an `Err` (a failed request) is never persisted.
 pub struct Cached<S, C> {
     inner: S,
     cache: Cache,
@@ -183,41 +183,33 @@ impl<S: MediaSource, C: Clock> Cached<S, C> {
 }
 
 impl<S: MediaSource, C: Clock> MediaSource for Cached<S, C> {
-    fn search(&mut self, query: &str) -> Option<Vec<Candidate>> {
+    fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.search(query, now) {
-            return Some(cached);
+            return Ok(cached);
         }
         let result = self.inner.search(query)?;
         self.cache.store_search(query, result.clone(), now);
-        Some(result)
+        Ok(result)
     }
 
-    fn sequels(&mut self, id: i64) -> Option<Vec<Candidate>> {
+    fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.sequels(id, now) {
-            return Some(cached);
+            return Ok(cached);
         }
         let result = self.inner.sequels(id)?;
         self.cache.store_sequels(id, result.clone(), now);
-        Some(result)
+        Ok(result)
     }
 
-    fn entry(&mut self, id: i64) -> Option<Candidate> {
+    fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.entry(id, now) {
-            return Some(cached);
+            return Ok(cached);
         }
         let result = self.inner.entry(id)?;
         self.cache.store_entry(id, result.clone(), now);
-        Some(result)
-    }
-
-    fn retry_after(&self) -> Option<Millis> {
-        self.inner.retry_after()
-    }
-
-    fn clear_retry(&mut self) {
-        self.inner.clear_retry();
+        Ok(result)
     }
 }

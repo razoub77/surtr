@@ -2,6 +2,7 @@
 //! used by the Absolute Episode walk, and their payload shapes.
 
 use crate::clock::Millis;
+use crate::matcher::SourceError;
 
 /// The public read-only endpoint; no authentication, no user credentials.
 pub const ENDPOINT: &str = "https://graphql.anilist.co";
@@ -202,12 +203,11 @@ pub fn retry_after_ms(header: Option<&str>) -> Millis {
 
 /// The live client: one blocking HTTPS POST per query. The daemon calls this
 /// from the core loop; mpv runs in its own process, so playback never blocks,
-/// and every failure path degrades to "no answer" (no Match, no Presence).
-/// A 429 records its `Retry-After` for the core's one deferred retry; the
-/// disk cache wraps this in [`crate::cache::Cached`].
+/// and every failure path degrades to no answer (no Match, no Presence). A
+/// 429 answers `RateLimited` with its `Retry-After` for the core's one
+/// deferred retry; the disk cache wraps this in [`crate::cache::Cached`].
 pub struct AniList {
     agent: ureq::Agent,
-    retry_after: Option<Millis>,
 }
 
 impl Default for AniList {
@@ -223,58 +223,51 @@ impl AniList {
                 .timeout_connect(std::time::Duration::from_secs(5))
                 .timeout(std::time::Duration::from_secs(15))
                 .build(),
-            retry_after: None,
         }
     }
 
-    /// One read-only GraphQL POST. Every failure path is `None`: no Match, no
-    /// Presence, playback untouched. (Routing a one-line diagnostic to the mpv
-    /// console is issue 07's `surtr-log` plumbing.)
-    fn post(&mut self, body: serde_json::Value) -> Option<String> {
+    /// One read-only GraphQL POST. A 429 answers `RateLimited` with the
+    /// parsed `Retry-After`; every other failure (transport, an unreadable
+    /// body) answers `Unavailable`: no Match, no Presence, playback
+    /// untouched.
+    fn post(&mut self, body: serde_json::Value) -> Result<String, SourceError> {
         match self
             .agent
             .post(ENDPOINT)
             .set("accept", "application/json")
             .send_json(body)
         {
-            Ok(response) => response.into_string().ok(),
-            Err(ureq::Error::Status(429, response)) => {
-                self.retry_after = Some(retry_after_ms(response.header("retry-after")));
-                None
-            }
-            Err(_) => None,
+            Ok(response) => response.into_string().map_err(|_| SourceError::Unavailable),
+            Err(ureq::Error::Status(429, response)) => Err(SourceError::RateLimited(
+                retry_after_ms(response.header("retry-after")),
+            )),
+            Err(_) => Err(SourceError::Unavailable),
         }
     }
 }
 
 impl crate::matcher::MediaSource for AniList {
-    fn search(&mut self, query: &str) -> Option<Vec<Candidate>> {
+    fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
         let text = self.post(request_body(query))?;
-        parse_response(&text)
+        parse_response(&text).ok_or(SourceError::Unavailable)
     }
 
-    fn sequels(&mut self, id: i64) -> Option<Vec<Candidate>> {
+    fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
         // No answer ends the walk with no Presence, rather than a wrong season.
         let text = self.post(relations_body(id))?;
-        parse_relations_response(&text).map(|edges| {
-            edges
-                .into_iter()
-                .filter(|edge| edge.relation_type == "SEQUEL")
-                .map(|edge| edge.node)
-                .collect()
-        })
+        parse_relations_response(&text)
+            .ok_or(SourceError::Unavailable)
+            .map(|edges| {
+                edges
+                    .into_iter()
+                    .filter(|edge| edge.relation_type == "SEQUEL")
+                    .map(|edge| edge.node)
+                    .collect()
+            })
     }
 
-    fn entry(&mut self, id: i64) -> Option<Candidate> {
+    fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         let text = self.post(entry_body(id))?;
-        parse_entry_response(&text)
-    }
-
-    fn retry_after(&self) -> Option<Millis> {
-        self.retry_after
-    }
-
-    fn clear_retry(&mut self) {
-        self.retry_after = None;
+        parse_entry_response(&text).ok_or(SourceError::Unavailable)
     }
 }

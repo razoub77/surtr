@@ -1,4 +1,5 @@
-//! Matching: turns a parsed Release Filename into a Match (or None).
+//! Matching: turns a parsed Release Filename into a Lookup Answer — a Match,
+//! or why not (a Miss, a rate-limit delay, or no answer).
 //!
 //! Matching runs after Season Resolution, never before: an explicit season
 //! marker `N > 1` is in the search query already (`release::ParsedRelease::
@@ -12,48 +13,56 @@ use std::collections::HashSet;
 
 use crate::anilist::Candidate;
 use crate::clock::Millis;
-use crate::daemon::{Metadata, MetadataClient, Miss};
+use crate::daemon::{Lookup, Metadata, MetadataClient, Miss};
 use crate::overrides::Overrides;
 use crate::release;
 use crate::scorer;
 
+/// Why a [`MediaSource`] has no answer for one request: AniList throttled
+/// it, or the request failed outright. Neither is a Miss — the file's
+/// lookup is not answered yet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceError {
+    /// The 429's `Retry-After` delay, in milliseconds.
+    RateLimited(Millis),
+    /// A transport failure or an unusable response.
+    Unavailable,
+}
+
 /// Supplies Candidates for a search query and the `SEQUEL` edges of an
 /// AniList id: live AniList in production, recorded fixtures in tests.
 pub trait MediaSource {
-    /// Candidates for a search query. `None` is no answer (transport or an
-    /// unusable response), distinct from `Some(vec![])`, a real zero result.
-    fn search(&mut self, query: &str) -> Option<Vec<Candidate>>;
+    /// Candidates for a search query. `Err` is no answer — a throttle or a
+    /// failed request — distinct from `Ok(vec![])`, a real zero result.
+    fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError>;
     /// The `SEQUEL`-related entries of `id`; an empty list when the chain ends.
-    fn sequels(&mut self, id: i64) -> Option<Vec<Candidate>>;
-    /// One entry by id, for an `overrides.json` short-circuit.
-    fn entry(&mut self, id: i64) -> Option<Candidate>;
-    /// The `Retry-After` delay of the most recent request, when it was a 429.
-    fn retry_after(&self) -> Option<Millis> {
-        None
-    }
-    /// Forget any previous rate-limit signal before one file's lookup.
-    fn clear_retry(&mut self) {}
+    fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError>;
+    /// One entry by id, for an `overrides.json` short-circuit. A dead id is
+    /// no answer here either: it arrives as [`SourceError::Unavailable`],
+    /// and the matcher reports it as a named-entry miss.
+    fn entry(&mut self, id: i64) -> Result<Candidate, SourceError>;
 }
 
 impl<S: MediaSource + ?Sized> MediaSource for &mut S {
-    fn search(&mut self, query: &str) -> Option<Vec<Candidate>> {
+    fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
         (**self).search(query)
     }
 
-    fn sequels(&mut self, id: i64) -> Option<Vec<Candidate>> {
+    fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
         (**self).sequels(id)
     }
 
-    fn entry(&mut self, id: i64) -> Option<Candidate> {
+    fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         (**self).entry(id)
     }
+}
 
-    fn retry_after(&self) -> Option<Millis> {
-        (**self).retry_after()
-    }
-
-    fn clear_retry(&mut self) {
-        (**self).clear_retry()
+impl From<SourceError> for Lookup {
+    fn from(error: SourceError) -> Self {
+        match error {
+            SourceError::RateLimited(delay) => Lookup::RateLimited(delay),
+            SourceError::Unavailable => Lookup::Unavailable,
+        }
     }
 }
 
@@ -82,8 +91,6 @@ pub struct Matcher<S: MediaSource> {
     /// Which title language leads the card's main title, loaded once at
     /// startup.
     title_language: TitleLanguage,
-    /// Why the most recent lookup missed, for the Daemon's report (issue 07).
-    miss: Option<Miss>,
 }
 
 impl<S: MediaSource> Matcher<S> {
@@ -92,7 +99,6 @@ impl<S: MediaSource> Matcher<S> {
             source,
             overrides: Overrides::none(),
             title_language: TitleLanguage::default(),
-            miss: None,
         }
     }
 
@@ -131,26 +137,21 @@ impl<S: MediaSource> Matcher<S> {
         queries
     }
 
-    fn lookup_release(&mut self, path: &str) -> Option<Metadata> {
-        // A 429 from an earlier file must not schedule a retry for this one.
-        self.source.clear_retry();
-        self.miss = None;
+    fn lookup_release(&mut self, path: &str) -> Lookup {
         let parsed = match release::parse(path) {
             Ok(parsed) => parsed,
             Err(rejected) => {
-                self.miss = Some(Miss::Fatal {
+                return Lookup::Missed(Miss::Fatal {
                     reason: rejection_reason(rejected),
                 });
-                return None;
             }
         };
         // Non-episodic OVAs/specials carry no episode number and are not
         // Movies: out of scope, no Presence.
         if !parsed.movie && parsed.episode.is_none() {
-            self.miss = Some(Miss::Fatal {
+            return Lookup::Missed(Miss::Fatal {
                 reason: "non-episodic file (OVA or special)".to_owned(),
             });
-            return None;
         }
         let context = scorer::Context {
             year: parsed.year,
@@ -169,6 +170,10 @@ impl<S: MediaSource> Matcher<S> {
         let mut miss_key = None;
         let mut answered = false;
         let mut zero = true;
+        // The failures met before a Match attempt: folded by precedence, so
+        // whatever the pass ends on is not downgraded by them (an earlier
+        // throttle must not be silenced by a later Miss).
+        let mut deferred: Option<Lookup> = None;
         for (index, query) in queries.iter().enumerate() {
             if Some(index) == folder_only && !zero {
                 break;
@@ -178,17 +183,28 @@ impl<S: MediaSource> Matcher<S> {
             // declared id. A dead id or a contradicted season is no Presence —
             // never a silent fallback to search.
             if let Some(id) = self.overrides.id(query) {
-                let Some(candidate) = self.source.entry(id) else {
-                    self.miss = Some(Miss::Fatal {
+                let answer = match self.source.entry(id) {
+                    Ok(candidate) => self.resolve_override(&candidate, &parsed),
+                    Err(SourceError::RateLimited(delay)) => Lookup::RateLimited(delay),
+                    Err(SourceError::Unavailable) => Lookup::Missed(Miss::Fatal {
                         reason: format!("the override for \"{query}\" names no AniList entry"),
-                    });
-                    return None;
+                    }),
                 };
-                return self.resolve_override(&candidate, &parsed);
+                return settle(deferred, answer);
             }
-            let Some(candidates) = self.source.search(query) else {
-                zero = false;
-                continue;
+            let candidates = match self.source.search(query) {
+                Ok(candidates) => candidates,
+                Err(error) => {
+                    // A throttle or failed request is no answer: the pass goes
+                    // on (a later query may still answer) and the strongest
+                    // failure so far is remembered.
+                    zero = false;
+                    deferred = Some(match deferred {
+                        None => error.into(),
+                        Some(previous) => stronger(previous, error.into()),
+                    });
+                    continue;
+                }
             };
             answered = true;
             if candidates.is_empty() {
@@ -196,28 +212,26 @@ impl<S: MediaSource> Matcher<S> {
             }
             zero = false;
             if let Some(candidate) = scorer::select(query, &candidates, &context) {
-                return self.resolve(candidate, &parsed);
+                return settle(deferred, self.resolve(&candidate, &parsed));
             }
         }
         // A query that got no answer at all is a transport failure, not a
         // miss; only a definitive zero or a lost score-off is repairable by
         // one `overrides.json` line naming the searched key (issue 07).
         if answered {
-            self.miss = miss_key.map(|query| Miss::Repairable {
-                key: scorer::normalize(&query),
+            let key = miss_key.expect("an answered pass searched at least one query");
+            let missed = Lookup::Missed(Miss::Repairable {
+                key: scorer::normalize(&key),
             });
+            return settle(deferred, missed);
         }
-        None
+        deferred.unwrap_or(Lookup::Unavailable)
     }
 
     /// Turns the winning Candidate into display metadata: season corroboration
     /// and contradiction first, then Absolute Episode remapping for an
     /// unmarked file.
-    fn resolve(
-        &mut self,
-        candidate: &Candidate,
-        parsed: &release::ParsedRelease,
-    ) -> Option<Metadata> {
+    fn resolve(&mut self, candidate: &Candidate, parsed: &release::ParsedRelease) -> Lookup {
         self.resolve_with(candidate, parsed, true)
     }
 
@@ -227,7 +241,7 @@ impl<S: MediaSource> Matcher<S> {
         &mut self,
         candidate: &Candidate,
         parsed: &release::ParsedRelease,
-    ) -> Option<Metadata> {
+    ) -> Lookup {
         self.resolve_with(candidate, parsed, false)
     }
 
@@ -239,7 +253,7 @@ impl<S: MediaSource> Matcher<S> {
         candidate: &Candidate,
         parsed: &release::ParsedRelease,
         corroborate: bool,
-    ) -> Option<Metadata> {
+    ) -> Lookup {
         // The override key a user could add to repair this miss (issue 07).
         let key = scorer::normalize(&parsed.title);
         if let Some(season) = parsed.season {
@@ -247,15 +261,13 @@ impl<S: MediaSource> Matcher<S> {
             // ordinal in its titles or synonyms. No corroboration, no
             // Presence — never fall back to the base entry.
             if corroborate && season > 1 && !corroborates(candidate, season) {
-                self.miss = Some(Miss::Repairable { key });
-                return None;
+                return Lookup::Missed(Miss::Repairable { key });
             }
             // An explicit marker is trusted, never walked forward from: an
             // episode beyond the entry's known total contradicts it.
             if let (Some(episode), Some(total)) = (parsed.episode, candidate.episodes) {
                 if episode > total {
-                    self.miss = Some(Miss::Repairable { key });
-                    return None;
+                    return Lookup::Missed(Miss::Repairable { key });
                 }
             }
             return self.matched(candidate, parsed);
@@ -269,10 +281,9 @@ impl<S: MediaSource> Matcher<S> {
             }
             // No known range to test the number against (`ONE PIECE`).
             (false, Some(episode), None) if episode > MAX_SEASON_EPISODES => {
-                self.miss = Some(Miss::Fatal {
+                Lookup::Missed(Miss::Fatal {
                     reason: "absolute episode with no known Total Episodes".to_owned(),
-                });
-                None
+                })
             }
             _ => self.matched(candidate, parsed),
         }
@@ -280,18 +291,13 @@ impl<S: MediaSource> Matcher<S> {
 
     /// The Match was won but could not render: a console-only failure, since
     /// no override line can give the entry a title.
-    fn matched(
-        &mut self,
-        candidate: &Candidate,
-        parsed: &release::ParsedRelease,
-    ) -> Option<Metadata> {
-        let metadata = metadata(candidate, parsed, self.title_language);
-        if metadata.is_none() {
-            self.miss = Some(Miss::Fatal {
+    fn matched(&self, candidate: &Candidate, parsed: &release::ParsedRelease) -> Lookup {
+        match metadata(candidate, parsed, self.title_language) {
+            Some(m) => Lookup::Matched(m),
+            None => Lookup::Missed(Miss::Fatal {
                 reason: "the matched entry carries no usable title".to_owned(),
-            });
+            }),
         }
-        metadata
     }
 
     /// Walks `SEQUEL` relations from the Root Season along the unique chain,
@@ -303,10 +309,18 @@ impl<S: MediaSource> Matcher<S> {
     /// it blocks the walk, since the number could belong to either. Each way
     /// the walk can fail carries its own report (issue 07): an ambiguous
     /// branch is repairable — one override naming a sequel could still
-    /// produce a card — while an overrun, a chain leaving the seasons, and a
-    /// failed request are console-only or silent.
-    fn remap(&mut self, root: &Candidate, episode: u32, key: &str) -> Option<Metadata> {
-        let mut remaining = episode.checked_sub(root.episodes?)?;
+    /// produce a card — while an overrun and a chain leaving the seasons are
+    /// console-only, and a failed request answers no Miss at all.
+    fn remap(&mut self, root: &Candidate, episode: u32, key: &str) -> Lookup {
+        // The caller's arm matched a known total above the episode; these two
+        // guards are for the compiler and unreachable in practice. They keep
+        // the old `?` semantics: a silent no-answer.
+        let Some(total) = root.episodes else {
+            return Lookup::Unavailable;
+        };
+        let Some(mut remaining) = episode.checked_sub(total) else {
+            return Lookup::Unavailable;
+        };
         let mut current = root.id;
         // A counted season whose own total is unknown, and the episode number
         // relative to it: the target when the chain ends, or when only movies
@@ -316,7 +330,11 @@ impl<S: MediaSource> Matcher<S> {
         loop {
             // A failed relations request is no answer, not the end of the
             // chain: no Presence and no report rather than guessing.
-            let mut sequels = self.source.sequels(current)?;
+            let mut sequels = match self.source.sequels(current) {
+                Ok(sequels) => sequels,
+                Err(SourceError::RateLimited(delay)) => return Lookup::RateLimited(delay),
+                Err(SourceError::Unavailable) => return Lookup::Unavailable,
+            };
             // Dedupe a repeated edge, then require exactly one: no sequel
             // means the number overruns the known chain, several mean an
             // ambiguous branch. Neither yields a Presence.
@@ -326,33 +344,29 @@ impl<S: MediaSource> Matcher<S> {
                 if let Some((season, episode)) = unknown {
                     return self.matched_season(&season, episode);
                 }
-                self.miss = Some(Miss::Fatal {
+                return Lookup::Missed(Miss::Fatal {
                     reason: "absolute episode beyond the known sequel chain".to_owned(),
                 });
-                return None;
             }
             if sequels.len() != 1 {
-                self.miss = Some(Miss::Repairable {
+                return Lookup::Missed(Miss::Repairable {
                     key: key.to_owned(),
                 });
-                return None;
             }
             let next = sequels.remove(0);
             if !visited.insert(next.id) {
-                self.miss = Some(Miss::Fatal {
+                return Lookup::Missed(Miss::Fatal {
                     reason: "the sequel chain cycles".to_owned(),
                 });
-                return None;
             }
             if is_counted(next.format.as_deref()) {
                 // A second counted season after an unknown total makes the
                 // containment ambiguous: the number may belong to either.
                 if unknown.is_some() {
-                    self.miss = Some(Miss::Fatal {
+                    return Lookup::Missed(Miss::Fatal {
                         reason: "absolute episode across a season with no known Total Episodes"
                             .to_owned(),
                     });
-                    return None;
                 }
                 match next.episodes {
                     Some(total) if remaining <= total => {
@@ -364,10 +378,9 @@ impl<S: MediaSource> Matcher<S> {
             } else if !is_continuity(next.format.as_deref()) {
                 // A SEQUEL to anything that is not a season (music, manga,
                 // an unknown format) is not part of the tally.
-                self.miss = Some(Miss::Fatal {
+                return Lookup::Missed(Miss::Fatal {
                     reason: "the sequel chain leaves the counted seasons".to_owned(),
                 });
-                return None;
             }
             current = next.id;
         }
@@ -375,28 +388,47 @@ impl<S: MediaSource> Matcher<S> {
 
     /// The season an Absolute Episode landed in: a Match, or a console-only
     /// failure when it cannot render.
-    fn matched_season(&mut self, season: &Candidate, episode: u32) -> Option<Metadata> {
-        let metadata = season_metadata(season, episode, self.title_language);
-        if metadata.is_none() {
-            self.miss = Some(Miss::Fatal {
+    fn matched_season(&self, season: &Candidate, episode: u32) -> Lookup {
+        match season_metadata(season, episode, self.title_language) {
+            Some(m) => Lookup::Matched(m),
+            None => Lookup::Missed(Miss::Fatal {
                 reason: "the matched entry carries no usable title".to_owned(),
-            });
+            }),
         }
-        metadata
     }
 }
 
 impl<S: MediaSource> MetadataClient for Matcher<S> {
-    fn lookup(&mut self, path: &str) -> Option<Metadata> {
+    fn lookup(&mut self, path: &str) -> Lookup {
         self.lookup_release(path)
     }
+}
 
-    fn retry_after(&self) -> Option<Millis> {
-        self.source.retry_after()
+/// Ends a lookup with `answer`: a Match wins outright — no earlier failure
+/// downgrades it — and anything else folds with the lookup's earlier
+/// failures by the Lookup Answer's precedence.
+fn settle(deferred: Option<Lookup>, answer: Lookup) -> Lookup {
+    match answer {
+        Lookup::Matched(_) => answer,
+        other => match deferred {
+            Some(previous) => stronger(previous, other),
+            None => other,
+        },
     }
+}
 
-    fn miss(&self) -> Option<Miss> {
-        self.miss.clone()
+/// The stronger of two non-Match answers, by the Lookup Answer's precedence:
+/// a rate limit outranks a Miss, a Miss outranks silence — and of two rate
+/// limits the most recent delay is the one honoured. A Match never reaches
+/// this fold (it returns before any fold), and `previous` never holds a
+/// Miss (a Miss is terminal: it only ever arrives as `next`).
+fn stronger(previous: Lookup, next: Lookup) -> Lookup {
+    match (previous, next) {
+        (Lookup::RateLimited(_), Lookup::RateLimited(delay)) => Lookup::RateLimited(delay),
+        (limited @ Lookup::RateLimited(_), _) => limited,
+        (_, Lookup::RateLimited(delay)) => Lookup::RateLimited(delay),
+        (Lookup::Unavailable, missed @ Lookup::Missed(_)) => missed,
+        (previous, _) => previous,
     }
 }
 

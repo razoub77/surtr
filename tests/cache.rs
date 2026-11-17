@@ -9,7 +9,7 @@ use std::rc::Rc;
 use surtr::anilist::{Candidate, Titles};
 use surtr::cache::{Cache, Cached, TTL_MS, VERSION};
 use surtr::clock::Clock;
-use surtr::matcher::MediaSource;
+use surtr::matcher::{MediaSource, SourceError};
 
 const T0: i64 = 1_700_000_000_000;
 
@@ -52,20 +52,22 @@ struct Calls {
 /// A source whose search answers are scripted, recording every call.
 struct Source {
     calls: Rc<Calls>,
-    searches: RefCell<VecDeque<Option<Vec<Candidate>>>>,
-    sequel_response: Option<Vec<Candidate>>,
-    entry_response: Option<Candidate>,
+    searches: RefCell<VecDeque<Result<Vec<Candidate>, SourceError>>>,
+    sequel_response: Result<Vec<Candidate>, SourceError>,
+    entry_response: Result<Candidate, SourceError>,
 }
 
 impl Source {
-    fn new(searches: impl IntoIterator<Item = Option<Vec<Candidate>>>) -> (Self, Rc<Calls>) {
+    fn new(
+        searches: impl IntoIterator<Item = Result<Vec<Candidate>, SourceError>>,
+    ) -> (Self, Rc<Calls>) {
         let calls = Rc::new(Calls::default());
         (
             Self {
                 calls: calls.clone(),
                 searches: RefCell::new(searches.into_iter().collect()),
-                sequel_response: Some(Vec::new()),
-                entry_response: None,
+                sequel_response: Ok(Vec::new()),
+                entry_response: Err(SourceError::Unavailable),
             },
             calls,
         )
@@ -73,17 +75,20 @@ impl Source {
 }
 
 impl MediaSource for Source {
-    fn search(&mut self, _query: &str) -> Option<Vec<Candidate>> {
+    fn search(&mut self, _query: &str) -> Result<Vec<Candidate>, SourceError> {
         self.calls.searches.set(self.calls.searches.get() + 1);
-        self.searches.borrow_mut().pop_front().unwrap_or(None)
+        self.searches
+            .borrow_mut()
+            .pop_front()
+            .unwrap_or(Err(SourceError::Unavailable))
     }
 
-    fn sequels(&mut self, _id: i64) -> Option<Vec<Candidate>> {
+    fn sequels(&mut self, _id: i64) -> Result<Vec<Candidate>, SourceError> {
         self.calls.sequels.set(self.calls.sequels.get() + 1);
         self.sequel_response.clone()
     }
 
-    fn entry(&mut self, _id: i64) -> Option<Candidate> {
+    fn entry(&mut self, _id: i64) -> Result<Candidate, SourceError> {
         self.calls.entries.set(self.calls.entries.get() + 1);
         self.entry_response.clone()
     }
@@ -110,14 +115,14 @@ fn candidate(id: i64, romaji: &str) -> Candidate {
 #[test]
 fn a_fresh_hit_skips_the_source_after_the_first_search() {
     let path = temp_path("fresh");
-    let (source, calls) = Source::new([Some(vec![candidate(19, "MONSTER")])]);
+    let (source, calls) = Source::new([Ok(vec![candidate(19, "MONSTER")])]);
     let mut cached = Cached::new(source, Cache::load(path), FixedClock::at(T0));
 
-    assert_eq!(cached.search("monster"), Some(vec![candidate(19, "MONSTER")]));
+    assert_eq!(cached.search("monster"), Ok(vec![candidate(19, "MONSTER")]));
     assert_eq!(calls.searches.get(), 1);
 
     // Same query in different case is the same normalized cache key.
-    assert_eq!(cached.search("Monster"), Some(vec![candidate(19, "MONSTER")]));
+    assert_eq!(cached.search("Monster"), Ok(vec![candidate(19, "MONSTER")]));
     assert_eq!(calls.searches.get(), 1, "a fresh hit makes no source call");
 }
 
@@ -126,15 +131,15 @@ fn an_expired_entry_is_never_a_stale_fallback() {
     let path = temp_path("expired");
     let clock = FixedClock::at(T0);
     let (source, calls) = Source::new([
-        Some(vec![candidate(19, "MONSTER")]),
+        Ok(vec![candidate(19, "MONSTER")]),
         // The refetch fails: no answer, so no presence — not the old value.
-        None,
+        Err(SourceError::Unavailable),
     ]);
     let mut cached = Cached::new(source, Cache::load(path), clock.clone());
 
-    assert!(cached.search("monster").is_some());
+    assert!(cached.search("monster").is_ok());
     clock.set(T0 + TTL_MS + 1);
-    assert_eq!(cached.search("monster"), None);
+    assert_eq!(cached.search("monster"), Err(SourceError::Unavailable));
     assert_eq!(calls.searches.get(), 2, "the expired entry was refetched");
 }
 
@@ -142,25 +147,25 @@ fn an_expired_entry_is_never_a_stale_fallback() {
 fn a_fresh_cache_file_survives_a_restart() {
     let path = temp_path("restart");
     {
-        let (source, calls) = Source::new([Some(vec![candidate(19, "MONSTER")])]);
+        let (source, calls) = Source::new([Ok(vec![candidate(19, "MONSTER")])]);
         let mut cached = Cached::new(source, Cache::load(path.clone()), FixedClock::at(T0));
-        assert!(cached.search("monster").is_some());
+        assert!(cached.search("monster").is_ok());
         assert_eq!(calls.searches.get(), 1);
     }
 
     // A new Daemon process: a cache hit means the source is never asked.
     let (source, calls) = Source::new([]);
     let mut cached = Cached::new(source, Cache::load(path), FixedClock::at(T0 + 1_000));
-    assert_eq!(cached.search("monster"), Some(vec![candidate(19, "MONSTER")]));
+    assert_eq!(cached.search("monster"), Ok(vec![candidate(19, "MONSTER")]));
     assert_eq!(calls.searches.get(), 0);
 }
 
 #[test]
 fn the_cache_file_is_versioned_and_written_atomically() {
     let path = temp_path("atomic");
-    let (source, _) = Source::new([Some(vec![candidate(19, "MONSTER")])]);
+    let (source, _) = Source::new([Ok(vec![candidate(19, "MONSTER")])]);
     let mut cached = Cached::new(source, Cache::load(path.clone()), FixedClock::at(T0));
-    cached.search("monster");
+    let _ = cached.search("monster");
 
     let text = std::fs::read_to_string(&path).expect("cache written");
     let document: serde_json::Value = serde_json::from_str(&text).expect("valid JSON");
@@ -175,10 +180,10 @@ fn the_cache_file_is_versioned_and_written_atomically() {
 fn a_cache_from_another_version_is_ignored() {
     let path = temp_path("version");
     std::fs::write(&path, r#"{"version":99,"searches":{}}"#).unwrap();
-    let (source, calls) = Source::new([Some(vec![candidate(19, "MONSTER")])]);
+    let (source, calls) = Source::new([Ok(vec![candidate(19, "MONSTER")])]);
     let mut cached = Cached::new(source, Cache::load(path), FixedClock::at(T0));
 
-    assert!(cached.search("monster").is_some());
+    assert!(cached.search("monster").is_ok());
     assert_eq!(calls.searches.get(), 1, "an old version starts empty");
 }
 
@@ -186,10 +191,10 @@ fn a_cache_from_another_version_is_ignored() {
 fn a_corrupt_cache_file_starts_empty() {
     let path = temp_path("corrupt");
     std::fs::write(&path, "not json").unwrap();
-    let (source, calls) = Source::new([Some(vec![candidate(19, "MONSTER")])]);
+    let (source, calls) = Source::new([Ok(vec![candidate(19, "MONSTER")])]);
     let mut cached = Cached::new(source, Cache::load(path), FixedClock::at(T0));
 
-    assert!(cached.search("monster").is_some());
+    assert!(cached.search("monster").is_ok());
     assert_eq!(calls.searches.get(), 1);
 }
 
@@ -197,12 +202,12 @@ fn a_corrupt_cache_file_starts_empty() {
 fn relations_and_entries_are_cached_by_id() {
     let path = temp_path("ids");
     let (mut source, calls) = Source::new([]);
-    source.sequel_response = Some(vec![candidate(2, "Show 2nd Season")]);
-    source.entry_response = Some(candidate(108268, "Honzuki no Gekokujou"));
+    source.sequel_response = Ok(vec![candidate(2, "Show 2nd Season")]);
+    source.entry_response = Ok(candidate(108268, "Honzuki no Gekokujou"));
     let mut cached = Cached::new(source, Cache::load(path), FixedClock::at(T0));
 
-    assert!(cached.sequels(1).is_some());
-    assert!(cached.sequels(1).is_some());
+    assert!(cached.sequels(1).is_ok());
+    assert!(cached.sequels(1).is_ok());
     assert_eq!(calls.sequels.get(), 1, "relations are cached by id");
 
     assert_eq!(cached.entry(108268).unwrap().id, 108268);
@@ -215,16 +220,16 @@ fn id_keyed_entries_survive_a_restart() {
     let path = temp_path("ids-restart");
     {
         let (mut source, _) = Source::new([]);
-        source.sequel_response = Some(vec![candidate(2, "Show 2nd Season")]);
-        source.entry_response = Some(candidate(108268, "Honzuki no Gekokujou"));
+        source.sequel_response = Ok(vec![candidate(2, "Show 2nd Season")]);
+        source.entry_response = Ok(candidate(108268, "Honzuki no Gekokujou"));
         let mut cached = Cached::new(source, Cache::load(path.clone()), FixedClock::at(T0));
-        assert!(cached.sequels(1).is_some());
-        assert!(cached.entry(108268).is_some());
+        assert!(cached.sequels(1).is_ok());
+        assert!(cached.entry(108268).is_ok());
     }
 
     let (mut source, calls) = Source::new([]);
-    source.entry_response = None;
-    source.sequel_response = None;
+    source.entry_response = Err(SourceError::Unavailable);
+    source.sequel_response = Err(SourceError::Unavailable);
     let mut cached = Cached::new(source, Cache::load(path), FixedClock::at(T0 + 1_000));
     assert_eq!(cached.sequels(1).unwrap()[0].id, 2);
     assert_eq!(cached.entry(108268).unwrap().id, 108268);

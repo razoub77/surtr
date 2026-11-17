@@ -10,8 +10,8 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use surtr::daemon::{
-    Effect, LiveState, Metadata, MetadataClient, MpvEvent, OwnerClaim, Policy, Presence, Property,
-    Runner,
+    Effect, LiveState, Lookup, Metadata, MetadataClient, MpvEvent, OwnerClaim, Policy, Presence,
+    Property, Runner,
 };
 
 const T0: i64 = 1_700_000_000_000;
@@ -33,7 +33,7 @@ impl OwnerClaim for SharedClaim {
     }
 }
 
-/// A scripted Match lookup: one `true` (a Match) or `false` (a miss) per
+/// A scripted Match lookup: one `true` (a Match) or `false` (no answer) per
 /// lookup, `false` once the script runs out.
 #[derive(Default)]
 struct Script {
@@ -42,15 +42,18 @@ struct Script {
 }
 
 impl MetadataClient for Script {
-    fn lookup(&mut self, path: &str) -> Option<Metadata> {
+    fn lookup(&mut self, path: &str) -> Lookup {
         self.asked.push(path.to_owned());
-        self.answers.pop_front().filter(|matched| *matched).map(|_| Metadata {
-            id: 1,
-            title: "Frieren".to_owned(),
-            episode: Some("Episode 1 of 12".to_owned()),
-            hover: "Frieren".to_owned(),
-            cover: None,
-        })
+        match self.answers.pop_front() {
+            Some(true) => Lookup::Matched(Metadata {
+                id: 1,
+                title: "Frieren".to_owned(),
+                episode: Some("Episode 1 of 12".to_owned()),
+                hover: "Frieren".to_owned(),
+                cover: None,
+            }),
+            _ => Lookup::Unavailable,
+        }
     }
 }
 
@@ -264,19 +267,20 @@ async fn shutdown_clears_then_stops_the_host() {
 
 #[tokio::test]
 async fn a_deferred_retry_wakes_at_the_deadline_the_runner_asked_for() {
-    /// A first lookup rate limited, a second one empty.
+    /// A first lookup rate limited, a second one without an answer.
     #[derive(Default)]
     struct RateLimited {
         calls: Rc<Cell<usize>>,
     }
 
     impl MetadataClient for RateLimited {
-        fn lookup(&mut self, _path: &str) -> Option<Metadata> {
+        fn lookup(&mut self, _path: &str) -> Lookup {
             self.calls.set(self.calls.get() + 1);
-            None
-        }
-        fn retry_after(&self) -> Option<i64> {
-            (self.calls.get() == 1).then_some(30_000)
+            if self.calls.get() == 1 {
+                Lookup::RateLimited(30_000)
+            } else {
+                Lookup::Unavailable
+            }
         }
     }
 

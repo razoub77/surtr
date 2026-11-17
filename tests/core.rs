@@ -16,8 +16,9 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use surtr::daemon::{
-    Effect, Frame, Input, LiveState, Metadata, MetadataClient, Miss, MpvEvent, OwnerClaim, Policy,
-    Presence, Property, Runner, Step, CLAIM_DEBOUNCE_MS, CLAIM_POLL_MS, CLAIM_SETTLE_MS, GRACE_MS,
+    Effect, Frame, Input, LiveState, Lookup, Metadata, MetadataClient, Miss, MpvEvent, OwnerClaim,
+    Policy, Presence, Property, Runner, Step, CLAIM_DEBOUNCE_MS, CLAIM_POLL_MS, CLAIM_SETTLE_MS,
+    GRACE_MS,
 };
 
 const T0: i64 = 1_700_000_000_000;
@@ -45,98 +46,29 @@ impl OwnerClaim for SharedClaim {
     }
 }
 
-/// What the next lookup answers.
-#[derive(Clone)]
-struct Scripted {
-    result: Option<Metadata>,
-    retry_after: Option<i64>,
-    miss: Option<Miss>,
-}
-
-impl Scripted {
-    fn matched(metadata: Metadata) -> Self {
-        Self {
-            result: Some(metadata),
-            retry_after: None,
-            miss: None,
-        }
-    }
-    /// A miss with no report: the reason never reaches the user.
-    fn miss() -> Self {
-        Self {
-            result: None,
-            retry_after: None,
-            miss: None,
-        }
-    }
-    /// A definitive miss one `overrides.json` line could repair (issue 07).
-    fn repairable(key: &str) -> Self {
-        Self {
-            result: None,
-            retry_after: None,
-            miss: Some(Miss::Repairable {
-                key: key.to_owned(),
-            }),
-        }
-    }
-    /// A miss no single override line can fix: console only.
-    fn fatal(reason: &str) -> Self {
-        Self {
-            result: None,
-            retry_after: None,
-            miss: Some(Miss::Fatal {
-                reason: reason.to_owned(),
-            }),
-        }
-    }
-    fn rate_limited(retry_after: i64) -> Self {
-        Self {
-            result: None,
-            retry_after: Some(retry_after),
-            miss: None,
-        }
-    }
-}
-
+/// A scripted Match lookup: one Lookup Answer per lookup, `Unavailable` once
+/// the script runs out (no Presence, no report).
+#[derive(Default)]
 struct MockMetadata {
-    script: VecDeque<Scripted>,
-    last_retry: Option<i64>,
-    last_miss: Option<Miss>,
+    script: VecDeque<Lookup>,
     /// Every path looked up, shared so a test can read it while the Runner
     /// still holds the client.
     lookups: Rc<RefCell<Vec<String>>>,
 }
 
 impl MockMetadata {
-    fn scripted(script: impl IntoIterator<Item = Scripted>) -> Self {
+    fn scripted(script: impl IntoIterator<Item = Lookup>) -> Self {
         Self {
             script: script.into_iter().collect(),
-            last_retry: None,
-            last_miss: None,
             lookups: Rc::new(RefCell::new(Vec::new())),
         }
     }
 }
 
 impl MetadataClient for MockMetadata {
-    fn lookup(&mut self, path: &str) -> Option<Metadata> {
+    fn lookup(&mut self, path: &str) -> Lookup {
         self.lookups.borrow_mut().push(path.to_owned());
-        let Some(next) = self.script.pop_front() else {
-            self.last_retry = None;
-            self.last_miss = None;
-            return None;
-        };
-        self.last_retry = next.retry_after;
-        self.last_miss = next.miss;
-        next.result
-    }
-
-    fn retry_after(&self) -> Option<i64> {
-        self.last_retry
-    }
-
-    fn miss(&self) -> Option<Miss> {
-        self.last_miss.clone()
+        self.script.pop_front().unwrap_or(Lookup::Unavailable)
     }
 }
 
@@ -412,7 +344,7 @@ fn live(file: &str, time_pos: f64, duration: f64) -> LiveState {
 
 #[tokio::test]
 async fn file_loaded_publishes_watching_presence_with_live_timestamps() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -430,7 +362,7 @@ async fn file_loaded_publishes_watching_presence_with_live_timestamps() {
 
 #[tokio::test]
 async fn timestamps_scale_with_playback_speed() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -449,7 +381,7 @@ async fn timestamps_scale_with_playback_speed() {
 
 #[tokio::test]
 async fn a_speed_change_republishes_from_the_live_position() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -476,7 +408,7 @@ async fn a_speed_change_republishes_from_the_live_position() {
 
 #[tokio::test]
 async fn missing_duration_publishes_without_timestamps() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Short clip"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Short clip"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -494,7 +426,7 @@ async fn missing_duration_publishes_without_timestamps() {
 
 #[tokio::test]
 async fn a_movie_publishes_a_progress_bar_without_an_episode_line() {
-    let mut script = MockMetadata::scripted([Scripted::matched(movie())]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(movie())]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -513,7 +445,7 @@ async fn a_movie_publishes_a_progress_bar_without_an_episode_line() {
 
 #[tokio::test]
 async fn shutdown_clears_presence_and_exits() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -526,7 +458,7 @@ async fn shutdown_clears_presence_and_exits() {
 
 #[tokio::test]
 async fn no_match_clears_instead_of_publishing() {
-    let mut script = MockMetadata::scripted([Scripted::miss()]);
+    let mut script = MockMetadata::scripted([Lookup::Unavailable]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -538,7 +470,7 @@ async fn no_match_clears_instead_of_publishing() {
 
 #[tokio::test]
 async fn non_local_path_is_skipped_with_a_console_line() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("ignored"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("ignored"))]);
     let mut host = Host::new();
     let lookups = script.lookups.clone();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -556,7 +488,7 @@ async fn non_local_path_is_skipped_with_a_console_line() {
 
 #[tokio::test]
 async fn files_outside_the_anime_roots_produce_no_presence_and_no_lookup() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("ignored"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("ignored"))]);
     let mut host = Host::new();
     let lookups = script.lookups.clone();
     let mut runner = Runner::new(
@@ -584,8 +516,8 @@ async fn files_outside_the_anime_roots_produce_no_presence_and_no_lookup() {
 #[tokio::test]
 async fn a_new_path_clears_the_old_card_before_the_lookup() {
     let mut script = MockMetadata::scripted([
-        Scripted::matched(metadata("First")),
-        Scripted::matched(metadata("Second")),
+        Lookup::Matched(metadata("First")),
+        Lookup::Matched(metadata("Second")),
     ]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -624,7 +556,7 @@ async fn a_new_path_clears_the_old_card_before_the_lookup() {
 
 #[tokio::test]
 async fn a_repeated_file_loaded_does_not_lookup_twice() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let lookups = script.lookups.clone();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -651,7 +583,7 @@ async fn a_repeated_file_loaded_does_not_lookup_twice() {
 
 #[tokio::test]
 async fn seek_republishes_from_the_new_position() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -667,7 +599,7 @@ async fn seek_republishes_from_the_new_position() {
 
 #[tokio::test]
 async fn a_scrub_burst_coalesces_to_one_update() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -712,7 +644,7 @@ async fn a_scrub_burst_coalesces_to_one_update() {
 
 #[tokio::test]
 async fn the_token_bucket_allows_five_updates_then_one_every_four_seconds() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -738,7 +670,7 @@ async fn the_token_bucket_allows_five_updates_then_one_every_four_seconds() {
 #[tokio::test]
 async fn pause_drops_timestamps_and_leads_the_state_with_paused() {
     let mut script =
-        MockMetadata::scripted([Scripted::matched(episode("Frieren", "Episode 5 of 12"))]);
+        MockMetadata::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -766,7 +698,7 @@ async fn pause_drops_timestamps_and_leads_the_state_with_paused() {
 #[tokio::test]
 async fn unpause_republishes_with_fresh_timestamps() {
     let mut script =
-        MockMetadata::scripted([Scripted::matched(episode("Frieren", "Episode 5 of 12"))]);
+        MockMetadata::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -793,7 +725,7 @@ async fn unpause_republishes_with_fresh_timestamps() {
 
 #[tokio::test]
 async fn a_paused_movie_gets_a_paused_state() {
-    let mut script = MockMetadata::scripted([Scripted::matched(movie())]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(movie())]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -817,7 +749,7 @@ async fn a_paused_movie_gets_a_paused_state() {
 #[tokio::test]
 async fn a_long_pause_never_times_out() {
     let mut script =
-        MockMetadata::scripted([Scripted::matched(episode("Frieren", "Episode 5 of 12"))]);
+        MockMetadata::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -845,7 +777,7 @@ async fn a_long_pause_never_times_out() {
 
 #[tokio::test]
 async fn end_file_clears_after_the_grace_window() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -867,8 +799,8 @@ async fn end_file_clears_after_the_grace_window() {
 #[tokio::test]
 async fn a_playlist_advance_inside_the_grace_window_does_not_blank() {
     let mut script = MockMetadata::scripted([
-        Scripted::matched(metadata("Frieren")),
-        Scripted::matched(metadata("Frieren")),
+        Lookup::Matched(metadata("Frieren")),
+        Lookup::Matched(metadata("Frieren")),
     ]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -885,7 +817,7 @@ async fn a_playlist_advance_inside_the_grace_window_does_not_blank() {
 
 #[tokio::test]
 async fn eof_reached_clears_and_a_seek_back_republishes() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -906,7 +838,7 @@ async fn eof_reached_clears_and_a_seek_back_republishes() {
 
 #[tokio::test]
 async fn a_clear_beats_a_publish_when_both_are_pending() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -957,7 +889,7 @@ async fn a_clear_beats_a_publish_when_both_are_pending() {
 
 #[tokio::test]
 async fn a_dormant_daemon_resolves_but_publishes_nothing() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::dormant();
     let lookups = script.lookups.clone();
     let mut runner = Runner::new(&mut script, host.claim(false), PID, T0, policy(), Vec::new());
@@ -975,7 +907,7 @@ async fn a_dormant_daemon_resolves_but_publishes_nothing() {
 
 #[tokio::test]
 async fn focused_true_claims_ownership_after_the_debounce() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::dormant();
     let claim = host.claim(false);
     let seen = claim.clone();
@@ -995,7 +927,7 @@ async fn focused_true_claims_ownership_after_the_debounce() {
 
 #[tokio::test]
 async fn the_fresh_owner_publishes_live_state_after_the_settle() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::dormant();
     let claim = host.claim(false);
     let seen = claim.clone();
@@ -1036,7 +968,7 @@ async fn the_fresh_owner_publishes_live_state_after_the_settle() {
 
 #[tokio::test]
 async fn losing_focus_to_another_application_keeps_the_card() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
@@ -1061,7 +993,7 @@ async fn losing_focus_to_another_application_keeps_the_card() {
 
 #[tokio::test]
 async fn refocusing_an_owner_writes_no_new_claim_and_keeps_the_card() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
@@ -1075,7 +1007,7 @@ async fn refocusing_an_owner_writes_no_new_claim_and_keeps_the_card() {
 
 #[tokio::test]
 async fn a_new_claim_makes_the_previous_owner_clear_within_one_poll() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let claim = host.claim(true);
     let mut other_window = claim.clone();
@@ -1101,8 +1033,8 @@ async fn a_new_claim_makes_the_previous_owner_clear_within_one_poll() {
 #[tokio::test]
 async fn a_preempted_daemon_keeps_observing_but_never_publishes_again() {
     let mut script = MockMetadata::scripted([
-        Scripted::matched(metadata("Frieren")),
-        Scripted::matched(metadata("Frieren")),
+        Lookup::Matched(metadata("Frieren")),
+        Lookup::Matched(metadata("Frieren")),
     ]);
     let mut host = Host::new();
     let claim = host.claim(true);
@@ -1148,7 +1080,7 @@ async fn a_preempted_daemon_keeps_observing_but_never_publishes_again() {
 /// longer owns Discord. Only stepping by hand can interleave those three.
 #[tokio::test]
 async fn a_publish_racing_a_handover_is_dropped() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut claim = SharedClaim::default();
     claim.claim(PID);
 
@@ -1201,7 +1133,7 @@ async fn a_publish_racing_a_handover_is_dropped() {
 /// what the Runner's own loop would apply.
 #[tokio::test]
 async fn a_handover_after_the_admission_clears_the_old_card() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let claim = host.claim(true);
     let mut other_window = claim.clone();
@@ -1221,7 +1153,7 @@ async fn a_handover_after_the_admission_clears_the_old_card() {
 
 #[tokio::test]
 async fn a_claim_lost_during_the_settle_publishes_nothing() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::dormant();
     let claim = host.claim(false);
     let mut other_window = claim.clone();
@@ -1253,8 +1185,8 @@ async fn a_claim_lost_during_the_settle_publishes_nothing() {
 #[tokio::test]
 async fn toggle_off_during_a_lookup_stays_hidden_and_toggle_on_republishes_the_match() {
     let mut script = MockMetadata::scripted([
-        Scripted::rate_limited(30_000),
-        Scripted::matched(metadata("Frieren")),
+        Lookup::RateLimited(30_000),
+        Lookup::Matched(metadata("Frieren")),
     ]);
     let mut host = Host::dormant();
     let claim = host.claim(false);
@@ -1300,7 +1232,7 @@ async fn toggle_off_during_a_lookup_stays_hidden_and_toggle_on_republishes_the_m
 
 #[tokio::test]
 async fn toggle_off_hides_the_live_match_and_toggle_on_brings_it_back_from_memory() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let lookups = script.lookups.clone();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -1326,7 +1258,7 @@ async fn toggle_off_hides_the_live_match_and_toggle_on_brings_it_back_from_memor
 
 #[tokio::test]
 async fn toggle_off_during_a_pending_publish_clears_at_once() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
@@ -1367,7 +1299,7 @@ async fn toggle_off_during_a_pending_publish_clears_at_once() {
 
 #[tokio::test]
 async fn toggle_on_cannot_claim_discord_for_a_dormant_daemon() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::dormant();
     let claim = host.claim(false);
     let seen = claim.clone();
@@ -1392,8 +1324,8 @@ async fn toggle_on_cannot_claim_discord_for_a_dormant_daemon() {
 #[tokio::test]
 async fn a_429_schedules_one_deferred_retry() {
     let mut script = MockMetadata::scripted([
-        Scripted::rate_limited(30_000),
-        Scripted::matched(metadata("Frieren")),
+        Lookup::RateLimited(30_000),
+        Lookup::Matched(metadata("Frieren")),
     ]);
     let mut host = Host::new();
     let lookups = script.lookups.clone();
@@ -1429,8 +1361,8 @@ async fn a_429_schedules_one_deferred_retry() {
 /// retry line nor lose its skip line unnoticed.
 #[tokio::test]
 async fn an_out_of_root_file_is_reported_once_and_never_retried() {
-    /// A client mid-back-off: a `Retry-After` is on the port, but a skipped
-    /// file must never be looked up, so it is never consumed.
+    /// A client mid-back-off: every lookup would answer `RateLimited`, but a
+    /// skipped file is never looked up, so the answer is never consumed.
     #[derive(Default)]
     struct RateLimited {
         /// Every path the kernel looked up, shared for inspection.
@@ -1438,12 +1370,9 @@ async fn an_out_of_root_file_is_reported_once_and_never_retried() {
     }
 
     impl MetadataClient for RateLimited {
-        fn lookup(&mut self, path: &str) -> Option<Metadata> {
+        fn lookup(&mut self, path: &str) -> Lookup {
             self.lookups.borrow_mut().push(path.to_owned());
-            None
-        }
-        fn retry_after(&self) -> Option<i64> {
-            Some(30_000)
+            Lookup::RateLimited(30_000)
         }
     }
 
@@ -1498,8 +1427,8 @@ async fn an_out_of_root_file_is_reported_once_and_never_retried() {
 #[tokio::test]
 async fn a_file_change_cancels_the_deferred_retry() {
     let mut script = MockMetadata::scripted([
-        Scripted::rate_limited(30_000),
-        Scripted::matched(metadata("Second")),
+        Lookup::RateLimited(30_000),
+        Lookup::Matched(metadata("Second")),
     ]);
     let mut host = Host::new();
     let lookups = script.lookups.clone();
@@ -1524,7 +1453,7 @@ async fn a_file_change_cancels_the_deferred_retry() {
 
 #[tokio::test]
 async fn reconnect_republishes_from_live_state_without_a_lookup() {
-    let mut script = MockMetadata::scripted([Scripted::matched(metadata("Frieren"))]);
+    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new();
     let lookups = script.lookups.clone();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -1551,7 +1480,9 @@ async fn reconnect_republishes_from_live_state_without_a_lookup() {
 #[tokio::test]
 async fn a_repairable_miss_shows_one_osd_and_one_console_line_per_file() {
     let mut script =
-        MockMetadata::scripted([Scripted::repairable("honzuki no gekokujou")]);
+        MockMetadata::scripted([Lookup::Missed(Miss::Repairable {
+        key: "honzuki no gekokujou".to_owned(),
+    })]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -1579,7 +1510,9 @@ async fn a_repairable_miss_shows_one_osd_and_one_console_line_per_file() {
 #[tokio::test]
 async fn a_miss_is_silent_when_the_file_loads_behind_the_toggle_off() {
     let mut script =
-        MockMetadata::scripted([Scripted::repairable("honzuki no gekokujou")]);
+        MockMetadata::scripted([Lookup::Missed(Miss::Repairable {
+        key: "honzuki no gekokujou".to_owned(),
+    })]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -1604,7 +1537,9 @@ async fn a_miss_is_silent_when_the_file_loads_behind_the_toggle_off() {
 #[tokio::test]
 async fn a_fatal_miss_logs_a_console_line_but_never_an_osd() {
     let mut script =
-        MockMetadata::scripted([Scripted::fatal("batch range or multi-episode file")]);
+        MockMetadata::scripted([Lookup::Missed(Miss::Fatal {
+        reason: "batch range or multi-episode file".to_owned(),
+    })]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -1622,7 +1557,7 @@ async fn a_fatal_miss_logs_a_console_line_but_never_an_osd() {
 
 #[tokio::test]
 async fn a_silent_miss_produces_no_console_line_and_no_osd() {
-    let mut script = MockMetadata::scripted([Scripted::miss()]);
+    let mut script = MockMetadata::scripted([Lookup::Unavailable]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
 
@@ -1635,8 +1570,10 @@ async fn a_silent_miss_produces_no_console_line_and_no_osd() {
 #[tokio::test]
 async fn a_rate_limited_lookup_stays_silent_until_the_retry_fails() {
     let mut script = MockMetadata::scripted([
-        Scripted::rate_limited(30_000),
-        Scripted::repairable("honzuki no gekokujou"),
+        Lookup::RateLimited(30_000),
+        Lookup::Missed(Miss::Repairable {
+        key: "honzuki no gekokujou".to_owned(),
+    }),
     ]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -1660,8 +1597,12 @@ async fn a_rate_limited_lookup_stays_silent_until_the_retry_fails() {
 #[tokio::test]
 async fn a_repeated_announce_of_the_same_missed_file_does_not_repeat_the_osd() {
     let mut script = MockMetadata::scripted([
-        Scripted::repairable("honzuki no gekokujou"),
-        Scripted::repairable("honzuki no gekokujou"),
+        Lookup::Missed(Miss::Repairable {
+        key: "honzuki no gekokujou".to_owned(),
+    }),
+        Lookup::Missed(Miss::Repairable {
+        key: "honzuki no gekokujou".to_owned(),
+    }),
     ]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
@@ -1679,8 +1620,12 @@ async fn a_repeated_announce_of_the_same_missed_file_does_not_repeat_the_osd() {
 #[tokio::test]
 async fn a_missed_file_reports_again_when_reloaded_after_end_file() {
     let mut script = MockMetadata::scripted([
-        Scripted::repairable("honzuki no gekokujou"),
-        Scripted::repairable("honzuki no gekokujou"),
+        Lookup::Missed(Miss::Repairable {
+        key: "honzuki no gekokujou".to_owned(),
+    }),
+        Lookup::Missed(Miss::Repairable {
+        key: "honzuki no gekokujou".to_owned(),
+    }),
     ]);
     let mut host = Host::new();
     let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());

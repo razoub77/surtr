@@ -16,9 +16,18 @@
 use std::collections::HashMap;
 
 use surtr::anilist::Candidate;
-use surtr::daemon::MetadataClient;
-use surtr::matcher::{Matcher, MediaSource};
+use surtr::daemon::{Lookup, Metadata, MetadataClient};
+use surtr::matcher::{Matcher, MediaSource, SourceError};
 use surtr::scorer;
+
+/// The Metadata of a Match: `None` when the lookup answered anything else.
+/// The corpus's misses and rejects are all `Missed` answers.
+fn matched(answer: Lookup) -> Option<Metadata> {
+    match answer {
+        Lookup::Matched(metadata) => Some(metadata),
+        _ => None,
+    }
+}
 
 /// Recorded search results keyed by normalized query.
 static FIXTURES: &str = include_str!("fixtures/anilist-corpus.json");
@@ -393,21 +402,20 @@ impl FixtureSource {
 }
 
 impl MediaSource for FixtureSource {
-    fn search(&mut self, query: &str) -> Option<Vec<Candidate>> {
-        Some(
-            self.fixtures
-                .get(&scorer::normalize(query))
-                .cloned()
-                .unwrap_or_default(),
-        )
+    fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
+        Ok(self
+            .fixtures
+            .get(&scorer::normalize(query))
+            .cloned()
+            .unwrap_or_default())
     }
 
-    fn sequels(&mut self, id: i64) -> Option<Vec<Candidate>> {
-        Some(self.sequels.get(&id).cloned().unwrap_or_default())
+    fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
+        Ok(self.sequels.get(&id).cloned().unwrap_or_default())
     }
 
-    fn entry(&mut self, _id: i64) -> Option<Candidate> {
-        None
+    fn entry(&mut self, _id: i64) -> Result<Candidate, SourceError> {
+        Err(SourceError::Unavailable)
     }
 }
 
@@ -417,7 +425,7 @@ fn golden_corpus_matches_the_recorded_entries() {
     for (n, row) in ROWS {
         let mut source = FixtureSource::recorded();
         let mut matcher = Matcher::new(&mut source);
-        let metadata = matcher.lookup(row.path);
+        let metadata = matched(matcher.lookup(row.path));
         let selected = metadata.as_ref().map(|m| m.id);
         if selected != row.expect {
             failures.push(format!("row {n}: expected {:?}, got {selected:?}", row.expect));
@@ -445,11 +453,10 @@ fn golden_corpus_matches_the_recorded_entries() {
 fn kusuriya_absolute_50_remaps_to_season_3_episode_2_of_12() {
     let mut source = FixtureSource::recorded();
     let mut matcher = Matcher::new(&mut source);
-    let metadata = matcher
-        .lookup(
-            r"D:\!Anime\Kusuriya no Hitorigoto\[ASW] Kusuriya no Hitorigoto - 50 [1080p HEVC][D5A7FF8E].mkv",
-        )
-        .expect("the walk resolves the containing season");
+    let metadata = matched(matcher.lookup(
+        r"D:\!Anime\Kusuriya no Hitorigoto\[ASW] Kusuriya no Hitorigoto - 50 [1080p HEVC][D5A7FF8E].mkv",
+    ))
+    .expect("the walk resolves the containing season");
     assert_eq!(metadata.id, 195516);
     // English leads `details` under the default title preference.
     assert_eq!(metadata.title, "The Apothecary Diaries Season 3");
@@ -466,8 +473,8 @@ fn kusuriya_absolute_50_remaps_to_season_3_episode_2_of_12() {
 fn row_31_ova_is_out_of_scope_and_never_queried() {
     let mut source = FixtureSource::recorded();
     let mut matcher = Matcher::new(&mut source);
-    let metadata = matcher.lookup(
+    let metadata = matched(matcher.lookup(
         r"D:\!Anime\Honzuki no Gekokujou\Honzuki no Gekokujou OVA\S01OVA-Eustachius's Incognito Operation Downtown, Visiting Missus Corinna.mkv",
-    );
+    ));
     assert_eq!(metadata, None);
 }

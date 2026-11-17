@@ -8,8 +8,8 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use surtr::daemon::{
-    Effect, Frame, Input, LiveState, Metadata, MetadataClient, Miss, MpvEvent, Outcome, OwnerClaim,
-    Policy, Presence, Property, Step, StepBuilder, BUCKET_CAPACITY, CLAIM_DEBOUNCE_MS,
+    Effect, Frame, Input, LiveState, Lookup, Metadata, MetadataClient, Miss, MpvEvent, Outcome,
+    OwnerClaim, Policy, Presence, Property, Step, StepBuilder, BUCKET_CAPACITY, CLAIM_DEBOUNCE_MS,
     CLAIM_POLL_MS, CLAIM_SETTLE_MS, GRACE_MS, MISS_OSD_SECONDS, REFILL_MS,
 };
 
@@ -36,62 +36,18 @@ impl OwnerClaim for SharedClaim {
     }
 }
 
-/// One scripted lookup answer.
-enum Scripted {
-    Matched,
-    /// A miss with no report.
-    Missed,
-    /// A miss one `overrides.json` line could repair (issue 07).
-    Repairable(String),
-    RateLimited(i64),
-}
-
+/// A scripted Match lookup: one Lookup Answer per lookup, `Unavailable` once
+/// the script runs out (no Presence, no report).
 #[derive(Default)]
 struct Script {
-    answers: VecDeque<Scripted>,
+    answers: VecDeque<Lookup>,
     asked: Vec<String>,
-    retry_after: Option<i64>,
-    miss: Option<Miss>,
 }
 
 impl MetadataClient for Script {
-    fn lookup(&mut self, path: &str) -> Option<Metadata> {
+    fn lookup(&mut self, path: &str) -> Lookup {
         self.asked.push(path.to_owned());
-        match self.answers.pop_front() {
-            Some(Scripted::Matched) => {
-                self.retry_after = None;
-                self.miss = None;
-                Some(metadata("Frieren"))
-            }
-            Some(Scripted::Missed) => {
-                self.retry_after = None;
-                self.miss = None;
-                None
-            }
-            Some(Scripted::Repairable(key)) => {
-                self.retry_after = None;
-                self.miss = Some(Miss::Repairable { key });
-                None
-            }
-            Some(Scripted::RateLimited(delay)) => {
-                self.retry_after = Some(delay);
-                self.miss = None;
-                None
-            }
-            None => {
-                self.retry_after = None;
-                self.miss = None;
-                None
-            }
-        }
-    }
-
-    fn retry_after(&self) -> Option<i64> {
-        self.retry_after
-    }
-
-    fn miss(&self) -> Option<Miss> {
-        self.miss.clone()
+        self.answers.pop_front().unwrap_or(Lookup::Unavailable)
     }
 }
 
@@ -103,6 +59,11 @@ fn metadata(title: &str) -> Metadata {
         hover: title.to_owned(),
         cover: None,
     }
+}
+
+/// The scripted Match: one card, `Frieren`.
+fn matched() -> Lookup {
+    Lookup::Matched(metadata("Frieren"))
 }
 
 fn live(path: &str, time_pos: f64) -> LiveState {
@@ -276,7 +237,7 @@ fn open<'a>(script: &'a mut Script, host: &mut Host) -> Step<'a> {
 #[test]
 fn a_frame_returns_ordered_effects_and_the_next_wake() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -310,7 +271,7 @@ fn a_frame_returns_ordered_effects_and_the_next_wake() {
 #[test]
 fn a_clear_precedes_the_publish_of_a_new_file_in_one_outcome() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched, Scripted::Matched]),
+        answers: VecDeque::from([matched(), matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -342,7 +303,7 @@ fn a_clear_precedes_the_publish_of_a_new_file_in_one_outcome() {
 #[test]
 fn a_clear_is_emitted_only_when_a_card_is_up() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Missed]),
+        answers: VecDeque::from([Lookup::Unavailable]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -359,7 +320,7 @@ fn a_clear_is_emitted_only_when_a_card_is_up() {
 #[test]
 fn a_sample_answer_that_arrives_after_a_shutdown_publishes_nothing() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -402,7 +363,7 @@ fn a_sample_answer_that_arrives_after_a_shutdown_publishes_nothing() {
 #[test]
 fn a_file_load_publishes_the_match_from_the_sampled_player() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -425,7 +386,7 @@ fn a_file_load_publishes_the_match_from_the_sampled_player() {
 #[test]
 fn the_sample_answer_and_not_the_load_snapshot_feeds_the_publish() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -465,7 +426,7 @@ fn the_sample_answer_and_not_the_load_snapshot_feeds_the_publish() {
 #[test]
 fn toggle_off_clears_the_card_at_once() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -489,7 +450,7 @@ fn toggle_off_clears_the_card_at_once() {
 #[test]
 fn toggle_off_behind_a_dormant_daemon_emits_nothing() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(false);
@@ -507,7 +468,7 @@ fn toggle_off_behind_a_dormant_daemon_emits_nothing() {
 #[test]
 fn shutdown_clears_then_exits() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -531,7 +492,7 @@ fn shutdown_clears_then_exits() {
 #[test]
 fn an_unowned_shutdown_exits_without_a_clear() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(false);
@@ -554,7 +515,7 @@ fn an_unowned_shutdown_exits_without_a_clear() {
 #[test]
 fn one_step_emits_at_most_one_sample_demand() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -592,7 +553,7 @@ fn one_step_emits_at_most_one_sample_demand() {
 #[test]
 fn the_demand_never_chains() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -636,7 +597,7 @@ fn the_policy_defaults_reproduce_the_shipped_timing() {
 #[test]
 fn the_grace_window_is_the_policy_value() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let policy = Policy {
@@ -660,7 +621,9 @@ fn the_grace_window_is_the_policy_value() {
 #[test]
 fn the_miss_osd_duration_is_the_policy_value() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Repairable("frieren".to_owned())]),
+        answers: VecDeque::from([Lookup::Missed(Miss::Repairable {
+        key: "frieren".to_owned(),
+    })]),
         ..Script::default()
     };
     let policy = Policy {
@@ -694,7 +657,7 @@ fn the_miss_osd_duration_is_the_policy_value() {
 #[test]
 fn init_installs_the_anime_roots_for_every_eligible_file() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -714,7 +677,7 @@ fn init_installs_the_anime_roots_for_every_eligible_file() {
 #[test]
 fn a_file_outside_every_anime_root_is_skipped_with_a_console_line() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -758,7 +721,7 @@ fn a_file_outside_every_anime_root_is_skipped_with_a_console_line() {
 #[test]
 fn a_dormant_daemon_wakes_only_for_its_own_focus_and_settles_before_publishing() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(false);
@@ -797,7 +760,7 @@ fn a_dormant_daemon_wakes_only_for_its_own_focus_and_settles_before_publishing()
 #[test]
 fn an_owner_repolls_the_claim_on_the_policy_cadence() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -811,7 +774,7 @@ fn an_owner_repolls_the_claim_on_the_policy_cadence() {
 #[test]
 fn a_handover_clears_the_old_card_within_one_poll() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::Matched]),
+        answers: VecDeque::from([matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
@@ -829,7 +792,7 @@ fn a_handover_clears_the_old_card_within_one_poll() {
 #[test]
 fn a_deferred_429_retry_wakes_at_its_due_time_and_publishes_once() {
     let mut script = Script {
-        answers: VecDeque::from([Scripted::RateLimited(30_000), Scripted::Matched]),
+        answers: VecDeque::from([Lookup::RateLimited(30_000), matched()]),
         ..Script::default()
     };
     let mut host = Host::new(true);
