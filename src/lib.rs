@@ -5,6 +5,7 @@ pub mod cache;
 pub mod clock;
 pub mod daemon;
 pub mod discord;
+pub mod host;
 pub mod matcher;
 pub mod mpv;
 pub mod overrides;

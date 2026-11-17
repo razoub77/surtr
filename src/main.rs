@@ -1,19 +1,16 @@
-//! The Surtr daemon binary: selects over mpv events, the Runner's timer and
-//! Discord reconnections, applies the effects each Runner call returns to the
-//! mpv and Discord adapters, and runs until mpv closes or the pipe breaks.
+//! The Surtr daemon binary: parses the command line, constructs the mpv and
+//! Discord adapters, and hands their channels to the [`surtr::host`] loop.
 
 // The daemon is spawned detached by mpv; a console window would flash behind
 // the player. Diagnostics reach mpv's console over IPC, and argument errors
 // go through `report_usage`.
 #![windows_subsystem = "windows"]
 
-use std::future::Future;
-use std::pin::Pin;
-
 use surtr::anilist::AniList;
 use surtr::cache::{Cache, Cached};
-use surtr::clock::{Clock, SystemClock};
-use surtr::daemon::{Effect, LiveState, MpvEvent, Policy, Runner};
+use surtr::clock::SystemClock;
+use surtr::daemon::Policy;
+use surtr::host;
 use surtr::matcher::Matcher;
 use surtr::overrides::Overrides;
 use surtr::owner::OwnerFile;
@@ -111,77 +108,15 @@ fn parse_args() -> Option<Args> {
     Some(parsed)
 }
 
-use tokio::sync::mpsc::{UnboundedSender, WeakUnboundedSender};
-use tokio::sync::oneshot;
-
-/// A boxed future: the shape a call-site closure uses to answer a sample
-/// demand without naming the concrete future type.
-type BoxFuture<'f, T> = Pin<Box<dyn Future<Output = T> + 'f>>;
-
-/// Applies one effect to the channel it belongs to. A closed Discord channel
-/// or a dead mpv session drops the effect: both are already gone.
-fn apply(
-    effect: Effect,
-    presence: &UnboundedSender<discord::DiscordCmd>,
-    mpv: &UnboundedSender<mpv::Outbound>,
-) {
-    match effect {
-        Effect::Publish(presence_body) => {
-            let _ = presence.send(discord::DiscordCmd::Publish(presence_body));
-        }
-        Effect::Clear => {
-            let _ = presence.send(discord::DiscordCmd::Clear);
-        }
-        Effect::Log(text) => {
-            let _ = mpv.send(mpv::Outbound::Log(text));
-        }
-        Effect::Osd { text, seconds } => {
-            let _ = mpv.send(mpv::Outbound::ShowText { text, seconds });
-        }
-        // The Runner answers every demand itself; none reach the host.
-        Effect::Sample => {}
-    }
-}
-
-/// The Runner's handshake with the live player: one snapshot per demand, read
-/// from mpv through the session's oneshot channel. The sender is weak, so it
-/// cannot keep a finished session's queue alive.
-fn live_sampler(
-    samples: WeakUnboundedSender<oneshot::Sender<LiveState>>,
-) -> impl FnMut() -> BoxFuture<'static, LiveState> {
-    move || {
-        let samples = samples.clone();
-        Box::pin(async move {
-            let (reply, rx) = oneshot::channel();
-            // A dead session answers with the empty state, which the core
-            // turns into an empty Presence.
-            let Some(tx) = samples.upgrade() else {
-                return LiveState::default();
-            };
-            if tx.send(reply).is_err() {
-                return LiveState::default();
-            }
-            rx.await.unwrap_or_default()
-        })
-    }
-}
-
-/// What woke the event loop.
-enum Stimulus {
-    Mpv(MpvEvent),
-    Timer,
-    Reconnected,
-}
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let Some(args) = parse_args() else { return };
 
-    let (events_tx, mut events_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (events_tx, events_rx) = tokio::sync::mpsc::unbounded_channel();
     let (presence_tx, presence_rx) = tokio::sync::mpsc::unbounded_channel();
     let (mpv_tx, mpv_rx) = tokio::sync::mpsc::unbounded_channel::<mpv::Outbound>();
     let (samples_tx, samples_rx) = tokio::sync::mpsc::unbounded_channel();
-    let (reconnect_tx, mut reconnect_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (reconnect_tx, reconnect_rx) = tokio::sync::mpsc::unbounded_channel();
 
     // The publisher owns the Discord connection (or the dry-run printer).
     // Diagnostics ride the mpv channel so a refused connection is visible in
@@ -211,7 +146,7 @@ async fn main() {
         None => (Overrides::none(), Vec::new()),
     };
     for text in override_messages {
-        apply(Effect::Log(text), &presence_tx, &mpv_tx);
+        let _ = mpv_tx.send(mpv::Outbound::Log(text));
     }
     let cache = match paths::cache_file() {
         Some(path) => Cache::load(path),
@@ -227,71 +162,27 @@ async fn main() {
         let mut metadata = Matcher::new(Cached::new(AniList::new(), cache, SystemClock))
             .with_overrides(overrides)
             .with_title_language(title_language);
-        let mut runner = Runner::new(
+        host::run(
+            host::Wiring {
+                events: events_rx,
+                reconnects: reconnect_rx,
+                samples,
+                presence: presence_tx,
+                mpv: mpv_tx,
+            },
             &mut metadata,
             claim,
             std::process::id(),
-            clock.now_millis(),
-            Policy::default(),
             roots,
-        );
-        // The live player, read only when the kernel demands a sample.
-        let mut sampler = live_sampler(samples);
-
-        loop {
-            // Sleep until the bucket refills, a grace window closes, a
-            // deferred 429 retry comes due, or the claim needs re-checking.
-            let wake = runner.wake_at();
-            let sleep = async {
-                match wake {
-                    Some(at) => {
-                        let delay = (at - clock.now_millis()).max(0) as u64;
-                        tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
-                    }
-                    None => std::future::pending::<()>().await,
-                }
-            };
-
-            let stimulus = tokio::select! {
-                event = events_rx.recv() => match event {
-                    Some(event) => Stimulus::Mpv(event),
-                    None => break,
-                },
-                _ = sleep => Stimulus::Timer,
-                Some(()) = reconnect_rx.recv() => Stimulus::Reconnected,
-            };
-
-            // One stimulus in, the ordered effects out. The Runner answers
-            // any sample demand from the live player at this instant.
-            let now = clock.now_millis();
-            let effects = match stimulus {
-                Stimulus::Timer => runner.timer(now, &mut sampler).await,
-                // Discord came back: republish from live state, no lookup.
-                Stimulus::Reconnected => runner.reconnect(now, &mut sampler).await,
-                Stimulus::Mpv(event) => {
-                    // Every event reports the player it observed; the
-                    // position is only read when a publish is dispatched.
-                    let observed = match &event {
-                        MpvEvent::FileLoaded { live, .. } => live.clone(),
-                        _ => LiveState::default(),
-                    };
-                    runner.mpv(now, event, observed, &mut sampler).await
-                }
-            };
-            for effect in effects {
-                apply(effect, &presence_tx, &mpv_tx);
-            }
-            if runner.has_exited() {
-                break;
-            }
-        }
+            Policy::default(),
+            &clock,
+        )
+        .await;
     }
 
-    // The Runner (and its Match lookup) is gone with the block above; dropping
-    // the last senders lets the publisher observe channel EOF and flush its
-    // final payload before the process exits.
-    drop(presence_tx);
-    drop(mpv_tx);
+    // The Host (and its Match lookup) is gone with the block above: the sink
+    // senders dropped with it, so the publisher observes channel EOF and
+    // flushes its final payload before the process exits.
     let _ = publisher.await;
 
     let exit_code = match session.await {

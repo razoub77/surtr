@@ -81,6 +81,10 @@ _Avoid_: status, RP
 The Rust process that observes mpv over JSON IPC and owns the Discord connection.
 _Avoid_: backend, server, agent
 
+**Host**:
+The production loop of one Daemon: the channels it holds, the observed player snapshot between frames, and the routing of the kernel's effects to the mpv and Discord adapters. `main` builds it; tests drive the same entry point.
+_Avoid_: event loop, runtime, scheduler
+
 **Owner**:
 The Daemon whose mpv window was last focused; the only Daemon allowed to publish Presence.
 _Avoid_: master, primary, active
