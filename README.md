@@ -16,9 +16,15 @@ In PowerShell:
 irm https://github.com/razoub77/surtr/releases/latest/download/install.ps1 | iex
 ```
 
-The installer finds mpv's configuration folder by itself, installs the latest
-release, and keeps your settings when you run it again to update. Point Surtr
-at your folders in `script-opts/surtr.conf`:
+Opening it shows two choices, **Install / Update** and **Uninstall**: use
+`Up`/`Down` and `Enter` (or type `1`/`2`). The installer finds mpv's
+configuration folders, lets you tick which ones to install into or clean, and
+keeps your settings when you run it again to update. If `surtr.zip` sits beside
+`install.ps1`, it installs from that file with no network access; otherwise it
+downloads the latest release. Uninstall asks before deleting `%LOCALAPPDATA%\surtr`
+and keeps it by default.
+
+Point Surtr at your folders in `script-opts/surtr.conf`:
 
 ```ini
 anime_roots=D:\Anime;E:\Anime\Seasonal

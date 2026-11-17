@@ -34,11 +34,14 @@ and press Enter):
 irm https://github.com/razoub77/surtr/releases/latest/download/install.ps1 | iex
 ```
 
-It finds mpv's configuration folder for you — `%APPDATA%\mpv` (a stock Windows
-install), `portable_config` next to `mpv.exe` (a portable mpv), `MPV_HOME`, or
-Scoop's folder. If it finds several, it asks which one. If it finds none, it
-asks you to paste the folder's path. Then it downloads and installs the latest
-Surtr into that folder:
+First it asks what to do: **Install / Update** or **Uninstall**. Move with
+`Up`/`Down`, choose with `Enter`; you can also type `1` or `2`. It finds mpv's
+configuration folders for you - `%APPDATA%\mpv` (a stock Windows install),
+`portable_config` next to `mpv.exe` (a portable mpv), `MPV_HOME`, or Scoop's
+folder. Tick the folders to install into with `Space`, then press `Enter`. If it
+finds none, it asks you to paste a folder's path. If `surtr.zip` sits beside
+`install.ps1`, it uses that file and never touches the network; otherwise it
+downloads the latest release. It installs Surtr into each chosen folder:
 
 ```
 scripts/surtr/main.lua
@@ -194,18 +197,22 @@ its default, and the comments always match the version you just installed. Your
 overrides and cache in `%LOCALAPPDATA%\surtr` are never touched. If mpv is still
 open, the installer asks you to close it and press Enter, then retries.
 
-**Uninstall.** Run the same command with the uninstall switch set:
+**Uninstall.** Run the same command and choose **Uninstall** in the menu. To
+skip the menu, set `$env:SURTR_UNINSTALL = '1'` before the one-liner, or run
+`powershell -File install.ps1 -Uninstall` when you have the script:
 
 ```powershell
 $env:SURTR_UNINSTALL = '1'
 irm https://github.com/razoub77/surtr/releases/latest/download/install.ps1 | iex
 ```
 
-It removes `scripts/surtr` (the plugin and its executable),
-`script-opts/surtr.conf`, and `%LOCALAPPDATA%\surtr` (the cache, your overrides
-and the window-ownership file). Or delete those three by hand — that is all
-Surtr ever installed. Nothing else is installed: no service, no registry
-entries, no scheduled task. Discord forgets the card when mpv exits.
+Tick the folders to clean with `Space`, press `Enter`, then choose whether to
+also delete `%LOCALAPPDATA%\surtr` (the cache, your overrides and the
+window-ownership file). Pressing `Enter` keeps it; choose **Delete** to remove
+it. The uninstall removes `scripts/surtr` (the plugin and its executable) and
+`script-opts/surtr.conf` from the ticked folders. Or delete those files by hand
+- that is all Surtr ever installed. Nothing else is installed: no service, no
+registry entries, no scheduled task. Discord forgets the card when mpv exits.
 
 ## 7. Known Limits
 

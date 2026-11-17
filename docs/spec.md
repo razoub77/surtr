@@ -170,5 +170,5 @@ Testing centers entirely on one high-level architectural seam: the **Daemon Core
   ├── scripts/surtr/README.md
   └── script-opts/surtr.conf
   ```
-  `scripts/install.ps1` (published beside it on each release) downloads that archive and places it over the user's mpv configuration folder (`%APPDATA%\mpv` or `portable_config`), making deployment seamless for end users.
+  `scripts/install.ps1` (published beside it on each release) asks whether to install/update or uninstall, asks which detected mpv configuration folders (`%APPDATA%\mpv`, `portable_config`, …) to work on, and uses a `surtr.zip` beside it when present, otherwise downloads the archive. A console that cannot read keys gets the same choices as a numbered prompt.
 - The README contains eight explicit user-facing sections: Overview, Install, Configure, Verify, Troubleshooting, Updating/Uninstalling, Known Limits, and Overrides.

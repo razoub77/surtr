@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-    Tests scripts/install.ps1's conf sync (Merge-SurtrConf) at its seam:
-    template conf + existing conf text -> merged conf text.
+    Tests scripts/install.ps1's pure seams: the conf sync (Merge-SurtrConf:
+    template conf + existing conf text -> merged conf text), the package check
+    (Get-SurtrMissingFiles) and the menu frame (New-SurtrListFrame).
 
 .DESCRIPTION
     Dependency-free: dot-sources the installer with -SelfTest (which defines
@@ -107,6 +108,61 @@ $lfLines = ($lf.TrimEnd("`r", "`n")) -split '\r?\n'
 Check 'LF-ended existing conf merges the same way' (
     ($lfLines -contains 'anime_roots=E:\Anime;F:\More') -and
     ($lfLines -contains 'toggle_key=F8'))
+
+# --- package layout ----------------------------------------------------------
+# A surtr.zip is trusted only if the install layout is inside it; a downloaded
+# error page, or a truncated archive, must be reported by relative path.
+$stage = Join-Path ([IO.Path]::GetTempPath()) ("surtr-installer-test-" + [guid]::NewGuid())
+try {
+    foreach ($rel in @('scripts/surtr/main.lua', 'scripts/surtr/surtr.exe',
+            'scripts/surtr/README.md', 'script-opts/surtr.conf')) {
+        $target = Join-Path $stage $rel
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+        Set-Content -LiteralPath $target -Value ''
+    }
+    Check 'a full install layout is a package' (@(Get-SurtrMissingFiles -Root $stage).Count -eq 0)
+    Remove-Item -LiteralPath (Join-Path $stage 'scripts/surtr/README.md')
+    Check 'the missing file is named by its path inside the zip' (
+        ((@(Get-SurtrMissingFiles -Root $stage) -join ',') -eq 'scripts/surtr/README.md'))
+    Check 'nothing at all is not a package: all four files reported' (
+        (@(Get-SurtrMissingFiles -Root (Join-Path $stage 'absent')).Count -eq 4))
+}
+finally { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
+
+# --- menu frame --------------------------------------------------------------
+# The frame is text plus styles; the text is what the user reads, so assert on it.
+function Get-FrameLines($frame) {
+    return @($frame | ForEach-Object { (@($_) | ForEach-Object { $_.Text }) -join '' })
+}
+
+$targets = @(
+    (New-SurtrItem -Label 'Install / Update'),
+    (New-SurtrItem -Label 'Uninstall'),
+    (New-SurtrItem -Label 'Type a folder path...' -Action $true)
+)
+$one = Get-FrameLines (New-SurtrListFrame -Items $targets -Current 0 -Checked ([bool[]]@($false, $false, $false)) `
+        -Multi $false -Width 80 -Help (Get-SurtrHelp))
+Check 'the focused row carries the pointer' ($one[0] -eq '> Install / Update') ("found: $($one[0])")
+Check 'other rows stay aligned under it' ($one[1] -eq '  Uninstall') ("found: $($one[1])")
+Check 'the hint line says Up/Down, Enter and Esc' (
+    $one -contains '  Up/Down to move - Enter to choose - Esc to exit') ("found: $($one -join ' | ')")
+
+$picked = Get-FrameLines (New-SurtrListFrame -Items $targets -Current 1 -Checked ([bool[]]@($false, $true, $false)) `
+        -Multi $true -Width 80 -Help (Get-SurtrHelp -Multi))
+Check 'a ticked row shows [x]' ($picked -contains '> [x] Uninstall') ("found: $($picked -join ' | ')")
+Check 'an unticked row shows [ ]' ($picked -contains '  [ ] Install / Update') ("found: $($picked -join ' | ')")
+Check 'an action row has no tick box' ($picked -contains '  Type a folder path...') ("found: $($picked -join ' | ')")
+Check 'the hint line of a tick menu mentions Space' ($picked -contains '  Up/Down to move - Space to tick - Enter to confirm - Esc to exit') ("found: $($picked -join ' | ')")
+
+$detected = @((New-SurtrItem -Label '%APPDATA%\mpv' -Detail @('C:\Users\me\AppData\Roaming\mpv') -Path 'C:\Users\me\AppData\Roaming\mpv'))
+$withDetail = Get-FrameLines (New-SurtrListFrame -Items $detected -Current 0 -Checked ([bool[]]@($false)) `
+        -Multi $true -Width 80 -Help '')
+Check 'a detected folder shows its path under the label' (
+    ($withDetail[1] -eq '      C:\Users\me\AppData\Roaming\mpv')) ("found: $($withDetail -join ' | ')")
+
+Check 'a long path is shortened in the middle, never past the width' (
+    (Format-SurtrFit -Text 'C:\Users\me\AppData\Roaming\mpv' -Max 20 -Middle).Length -le 20 -and
+    (Format-SurtrFit -Text 'C:\Users\me\AppData\Roaming\mpv' -Max 20 -Middle).Contains('...'))
 
 Write-Output ''
 if ($failures -gt 0) {

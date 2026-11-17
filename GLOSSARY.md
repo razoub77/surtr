@@ -92,3 +92,11 @@ _Avoid_: master, primary, active
 **Toggle**:
 The session-scoped on/off switch for a single mpv window.
 _Avoid_: enable flag, pause
+
+**mpv Configuration Folder**:
+A directory mpv reads configuration from: `%APPDATA%\mpv`, `portable_config` beside mpv.exe, `MPV_HOME`, or Scoop's layout. The only place the plugin is installed; several may be chosen for one install.
+_Avoid_: install folder, config path
+
+**Installer**:
+The PowerShell script that asks whether to install/update or uninstall, places the plugin in one or more mpv Configuration Folders, and owns the shape of `script-opts/surtr.conf`.
+_Avoid_: setup, install command
