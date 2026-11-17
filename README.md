@@ -24,7 +24,7 @@ keeps your settings when you run it again to update. If `surtr.zip` sits beside
 downloads the latest release. Uninstall asks before deleting `%LOCALAPPDATA%\surtr`
 and keeps it by default.
 
-Point Surtr at your folders in `script-opts/surtr.conf`:
+Point Surtr at your anime folders in `script-opts/surtr.conf`:
 
 ```ini
 anime_roots=D:\Anime;E:\Anime\Seasonal
