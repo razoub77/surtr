@@ -15,8 +15,10 @@
 //!
 //! The production event loop drives that step through [`Runner`], the shell
 //! that owns the choreography every host call site would otherwise repeat:
-//! the drain-until-quiet loop, the sample handshake, the claim lifetime (by
-//! value in, back out in the outcome) and the wake-deadline bookkeeping.
+//! the drain-until-quiet loop, the sample handshake, the claim carried by
+//! value through each step, and the wake-deadline bookkeeping. The kernel's
+//! raw surface ([`Step`], [`Frame`], [`Input`], [`Outcome`]) is crate-private:
+//! only [`Runner`] and the kernel contract tests inside this module reach it.
 //!
 //! # The Presence lifecycle
 //!
@@ -224,16 +226,18 @@ impl Default for Policy {
 /// `observed` is the host's live snapshot (every property mpv reports except
 /// `time-pos`, which is only read on demand). A sample demand is answered
 /// against it, so a frame can never rebuild a card from a stale load.
+///
+/// Crate-private: production speaks to the kernel through [`Runner`] only.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Frame {
-    pub now: Millis,
-    pub observed: LiveState,
-    pub input: Input,
+pub(crate) struct Frame {
+    pub(crate) now: Millis,
+    pub(crate) observed: LiveState,
+    pub(crate) input: Input,
 }
 
 impl Frame {
     /// A frame at `now` carrying no observed player state.
-    pub fn new(now: Millis, input: Input) -> Self {
+    pub(crate) fn new(now: Millis, input: Input) -> Self {
         Self {
             now,
             observed: LiveState::default(),
@@ -242,7 +246,7 @@ impl Frame {
     }
 
     /// Attaches the observed player state.
-    pub fn with_observed(mut self, observed: LiveState) -> Self {
+    pub(crate) fn with_observed(mut self, observed: LiveState) -> Self {
         self.observed = observed;
         self
     }
@@ -250,7 +254,7 @@ impl Frame {
 
 /// One stimulus. Everything the kernel reacts to is one of these.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Input {
+pub(crate) enum Input {
     /// Installs the Anime Roots; the first frame of every Daemon, exactly once.
     Init {
         roots: Vec<String>,
@@ -287,10 +291,10 @@ pub enum Effect {
 /// sleep question lives here, so it cannot drift from the dispatch), and the
 /// exit flag.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Outcome {
-    pub effects: Vec<Effect>,
-    pub wake_at: Option<Millis>,
-    pub exit: bool,
+pub(crate) struct Outcome {
+    pub(crate) effects: Vec<Effect>,
+    pub(crate) wake_at: Option<Millis>,
+    pub(crate) exit: bool,
 }
 
 /// The player state sampled on demand, immediately before a dispatch.
@@ -356,13 +360,6 @@ pub enum MpvEvent {
     /// publishing. Ownership is never given up on losing focus.
     FocusChanged(bool),
     Shutdown,
-}
-
-/// Whether the daemon should keep running after handling an event.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Flow {
-    Continue,
-    Exit,
 }
 
 /// One loaded file and the Match resolved for it.
@@ -433,7 +430,9 @@ impl Bucket {
 /// The state is the same Presence lifecycle the [`Core`] methods drive: one
 /// latest-wins publish intent, a clear that always goes first, a single
 /// deferred 429 retry, and the ownership protocol.
-pub struct Step<'a> {
+///
+/// Crate-private: the [`Runner`] is the kernel's one seam.
+pub(crate) struct Step<'a> {
     metadata: &'a mut dyn MetadataClient,
     policy: Policy,
     pid: u32,
@@ -458,17 +457,17 @@ pub struct Step<'a> {
 
 /// Opens a [`Step`] with tuned timing (tests use literal values).
 #[derive(Debug, Clone, Copy, Default)]
-pub struct StepBuilder {
+pub(crate) struct StepBuilder {
     policy: Policy,
 }
 
 impl StepBuilder {
-    pub fn policy(mut self, policy: Policy) -> Self {
+    pub(crate) fn policy(mut self, policy: Policy) -> Self {
         self.policy = policy;
         self
     }
 
-    pub fn build<'a>(
+    pub(crate) fn build<'a>(
         self,
         metadata: &'a mut dyn MetadataClient,
         pid: u32,
@@ -498,14 +497,8 @@ impl StepBuilder {
 }
 
 impl<'a> Step<'a> {
-    /// Opens the kernel at `now`. The Anime Roots arrive with the `Init`
-    /// frame; until then every local file is eligible.
-    pub fn new(metadata: &'a mut dyn MetadataClient, pid: u32, now: Millis) -> Self {
-        StepBuilder::default().build(metadata, pid, now)
-    }
-
     /// The single entry point: handles one Frame and returns what to do.
-    pub fn step<C: OwnerClaim>(&mut self, frame: Frame, claim: &mut C) -> Outcome {
+    pub(crate) fn step<C: OwnerClaim>(&mut self, frame: Frame, claim: &mut C) -> Outcome {
         let now = frame.now;
         let mut out = Outcome {
             effects: Vec::new(),
@@ -569,7 +562,7 @@ impl<'a> Step<'a> {
     /// Whether a [`Effect::Sample`] demand is waiting for its answer. The host
     /// should send [`Input::Sampled`] next: any other frame lapses the demand
     /// against the observed player, which is a clear when nothing was asked.
-    pub fn awaiting_sample(&self) -> bool {
+    pub(crate) fn awaiting_sample(&self) -> bool {
         self.pending_sample
     }
 
@@ -1091,11 +1084,6 @@ impl<'a, C: OwnerClaim> Runner<'a, C> {
         self.exited
     }
 
-    /// The claim, returned: the Runner holds it by value for its lifetime.
-    pub fn into_claim(self) -> C {
-        self.claim
-    }
-
     /// Steps until the kernel is quiet, answering every sample demand as it
     /// comes. Effects are returned in the order they were produced, across
     /// every step the drain took.
@@ -1180,5 +1168,568 @@ fn build_presence(metadata: &Metadata, live: &LiveState, now: Millis) -> Presenc
         cover: metadata.cover.clone(),
         start_ms,
         end_ms,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Kernel contract tests
+// ---------------------------------------------------------------------------
+//
+// The tests the [`Runner`] cannot express: one [`Frame`] in, one [`Outcome`]
+// out, with the wake deadline and the exit flag read per frame. The driving
+// verbs are what the user did (load, seek, focus, wait); the assertions are
+// on the ordered effects the host would apply. Time is a frame field, so
+// every test runs on a virtual timeline of literal milliseconds.
+
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+    use std::collections::VecDeque;
+    use std::rc::Rc;
+
+    use super::*;
+
+    const T0: i64 = 1_700_000_000_000;
+
+    /// The process id every test Daemon runs as.
+    const PID: u32 = 4242;
+
+    /// In-memory `owner.json`: `None` is an absent file. Cloned so a test can
+    /// take the claim from another window mid-flight.
+    #[derive(Clone, Default)]
+    struct SharedClaim(Rc<Cell<Option<u32>>>);
+
+    impl OwnerClaim for SharedClaim {
+        fn claim(&mut self, pid: u32) {
+            self.0.set(Some(pid));
+        }
+        fn owner(&self) -> Option<u32> {
+            self.0.get()
+        }
+    }
+
+    /// A scripted Match lookup: one Lookup Answer per lookup, `Unavailable`
+    /// once the script runs out (no Presence, no report).
+    #[derive(Default)]
+    struct Script {
+        answers: VecDeque<Lookup>,
+        asked: Vec<String>,
+    }
+
+    impl MetadataClient for Script {
+        fn lookup(&mut self, path: &str) -> Lookup {
+            self.asked.push(path.to_owned());
+            self.answers.pop_front().unwrap_or(Lookup::Unavailable)
+        }
+    }
+
+    fn metadata(title: &str) -> Metadata {
+        Metadata {
+            id: 1,
+            title: title.to_owned(),
+            episode: Some("Episode 1 of 12".to_owned()),
+            hover: title.to_owned(),
+            cover: None,
+        }
+    }
+
+    /// The scripted Match: one card, `Frieren`.
+    fn matched() -> Lookup {
+        Lookup::Matched(metadata("Frieren"))
+    }
+
+    fn live(path: &str, time_pos: f64) -> LiveState {
+        LiveState {
+            path: Some(path.to_owned()),
+            time_pos: Some(time_pos),
+            duration: Some(1440.0),
+            ..LiveState::default()
+        }
+    }
+
+    fn path(n: u8) -> String {
+        format!(r"D:\Anime\Frieren - {n:02}.mkv")
+    }
+
+    /// The host side of the kernel: a virtual clock, the live player, the
+    /// owner file, and every outcome the kernel produced, in order.
+    struct Host {
+        now: i64,
+        /// The position, read fresh when the kernel asks.
+        live: LiveState,
+        /// The observed player the host holds between frames (no position).
+        observed: LiveState,
+        claim: SharedClaim,
+        /// Every outcome, one entry per frame.
+        outcomes: Vec<Outcome>,
+    }
+
+    impl Host {
+        /// `owning` starts with this window already holding the claim, so most
+        /// tests are about Presence, not arbitration.
+        fn new(owning: bool) -> Self {
+            let claim = SharedClaim::default();
+            if owning {
+                claim.0.set(Some(PID));
+            }
+            Self {
+                now: T0,
+                live: LiveState::default(),
+                observed: LiveState::default(),
+                claim,
+                outcomes: Vec::new(),
+            }
+        }
+
+        /// The answer to a sample demand: the observed player, with the
+        /// position read fresh at this instant.
+        fn answer(&self) -> Input {
+            Input::Sampled(LiveState {
+                time_pos: self.live.time_pos,
+                ..self.observed.clone()
+            })
+        }
+
+        /// One raw frame. The kernel's demand marks who answers.
+        fn frame(&mut self, step: &mut Step, input: Input) -> Vec<Effect> {
+            let mut claim = self.claim.clone();
+            let outcome = step.step(
+                Frame::new(self.now, input).with_observed(self.observed.clone()),
+                &mut claim,
+            );
+            let effects = outcome.effects.clone();
+            self.outcomes.push(outcome);
+            effects
+        }
+
+        /// Runs frames until nothing is left to do now: every demand is
+        /// answered from the live player and every due effect applied. The
+        /// demand is a signal to the host, so the host answers before poking
+        /// the kernel.
+        fn drain(&mut self, step: &mut Step) {
+            loop {
+                if step.awaiting_sample() {
+                    let answer = self.answer();
+                    self.frame(step, answer);
+                } else if !self.frame(step, Input::Timer).contains(&Effect::Sample) {
+                    break;
+                }
+            }
+        }
+
+        /// Waits `ms`, then drains (what the host's sleep does).
+        fn advance(&mut self, step: &mut Step, ms: i64) {
+            self.now += ms;
+            self.drain(step);
+        }
+
+        fn send(&mut self, step: &mut Step, input: Input) {
+            self.frame(step, input);
+            self.drain(step);
+        }
+
+        fn load(&mut self, step: &mut Step, n: u8) {
+            self.load_at(step, n, 0.0);
+        }
+
+        /// Loads file `n` with the player at `time_pos`; the host observes
+        /// everything about the load except that position.
+        fn load_at(&mut self, step: &mut Step, n: u8, time_pos: f64) {
+            let path = path(n);
+            self.live = live(&path, time_pos);
+            self.observed = LiveState {
+                time_pos: None,
+                ..self.live.clone()
+            };
+            self.send(
+                step,
+                Input::Mpv(MpvEvent::FileLoaded {
+                    path,
+                    live: self.live.clone(),
+                }),
+            );
+        }
+
+        /// A seek: playback restarts with the position at `time_pos`.
+        fn seek(&mut self, step: &mut Step, time_pos: f64) {
+            self.live.time_pos = Some(time_pos);
+            self.send(step, Input::Mpv(MpvEvent::PlaybackRestart));
+        }
+
+        /// Every effect of every frame, in order.
+        fn effects(&self) -> Vec<Effect> {
+            self.outcomes
+                .iter()
+                .flat_map(|outcome| outcome.effects.iter().cloned())
+                .collect()
+        }
+
+        fn publishes(&self) -> Vec<Presence> {
+            self.effects()
+                .into_iter()
+                .filter_map(|effect| match effect {
+                    Effect::Publish(presence) => Some(presence),
+                    _ => None,
+                })
+                .collect()
+        }
+
+        fn clears(&self) -> usize {
+            self.effects()
+                .into_iter()
+                .filter(|effect| matches!(effect, Effect::Clear))
+                .count()
+        }
+
+        fn samples(&self) -> usize {
+            self.effects()
+                .into_iter()
+                .filter(|effect| matches!(effect, Effect::Sample))
+                .count()
+        }
+    }
+
+    /// Opens the kernel with the scripted lookup and installs the Anime Roots
+    /// through the `Init` frame.
+    fn open<'a>(script: &'a mut Script, host: &mut Host) -> Step<'a> {
+        let mut step = StepBuilder::default().build(script, PID, T0);
+        host.send(&mut step, Input::Init { roots: Vec::new() });
+        step
+    }
+
+    #[test]
+    fn a_frame_returns_ordered_effects_and_the_next_wake() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+
+        let path = path(1);
+        host.live = live(&path, 120.0);
+        host.observed = LiveState {
+            time_pos: None,
+            ..host.live.clone()
+        };
+        let effects = host.frame(
+            &mut step,
+            Input::Mpv(MpvEvent::FileLoaded {
+                path,
+                live: host.live.clone(),
+            }),
+        );
+
+        assert_eq!(effects, vec![Effect::Sample], "a load admits a sample");
+        assert_eq!(
+            host.outcomes.last().unwrap().wake_at,
+            Some(T0 + CLAIM_POLL_MS),
+            "an Owner re-checks its claim at the policy cadence"
+        );
+        let answered = host.answer();
+        let answer = host.frame(&mut step, answered);
+        assert!(matches!(answer.as_slice(), [Effect::Publish(_)]));
+    }
+
+    #[test]
+    fn a_clear_precedes_the_publish_of_a_new_file_in_one_outcome() {
+        let mut script = Script {
+            answers: VecDeque::from([matched(), matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+        host.load(&mut step, 1);
+
+        // Two publishes pending in one outcome (a card up, then a new file): the
+        // clear always goes first.
+        let second = path(2);
+        host.live = live(&second, 0.0);
+        let effects = host.frame(
+            &mut step,
+            Input::Mpv(MpvEvent::FileLoaded {
+                path: second,
+                live: host.live.clone(),
+            }),
+        );
+        assert_eq!(
+            effects,
+            vec![Effect::Clear, Effect::Sample],
+            "the stale card is blanked in the same frame the new sample is asked"
+        );
+
+        let answered = host.frame(&mut step, Input::Sampled(host.live.clone()));
+        assert!(matches!(answered.as_slice(), [Effect::Publish(_)]));
+        assert_eq!(host.publishes().len(), 2);
+    }
+
+    #[test]
+    fn a_clear_is_emitted_only_when_a_card_is_up() {
+        let mut script = Script {
+            answers: VecDeque::from([Lookup::Unavailable]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+
+        // Nothing was ever published: the miss needs no `activity: null`.
+        host.load(&mut step, 1);
+        assert_eq!(host.clears(), 0);
+
+        host.send(&mut step, Input::Mpv(MpvEvent::Shutdown));
+        assert_eq!(host.clears(), 0, "shutdown of an empty card clears nothing");
+    }
+
+    #[test]
+    fn a_sample_answer_that_arrives_after_a_shutdown_publishes_nothing() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+
+        let path = path(1);
+        host.live = live(&path, 0.0);
+        host.observed = LiveState {
+            time_pos: None,
+            ..host.live.clone()
+        };
+        host.frame(
+            &mut step,
+            Input::Mpv(MpvEvent::FileLoaded {
+                path,
+                live: host.live.clone(),
+            }),
+        );
+        let shutdown = host.frame(&mut step, Input::Mpv(MpvEvent::Shutdown));
+        assert_eq!(
+            shutdown,
+            vec![Effect::Publish(host.publishes()[0].clone()), Effect::Clear],
+            "the lapsed demand published from the observed player, then the clear"
+        );
+        let late = host.frame(&mut step, Input::Sampled(host.live.clone()));
+        assert_eq!(
+            late,
+            Vec::new(),
+            "the demand was already answered: a late answer publishes nothing"
+        );
+        let samples = host.samples();
+        assert_eq!(samples, 1, "the demand never re-armed");
+        assert_eq!(host.publishes().len(), 1);
+    }
+
+    #[test]
+    fn the_sample_answer_and_not_the_load_snapshot_feeds_the_publish() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+
+        let file = path(1);
+        host.live = live(&file, 0.0);
+        host.observed = LiveState {
+            time_pos: None,
+            ..host.live.clone()
+        };
+        // A seek arrives after the load was admitted but before the answer.
+        host.frame(
+            &mut step,
+            Input::Mpv(MpvEvent::FileLoaded {
+                path: file,
+                live: host.live.clone(),
+            }),
+        );
+        host.live.time_pos = Some(600.0);
+        host.now += 10_000;
+        let answered = host.answer();
+        host.frame(&mut step, answered);
+
+        let publish = host.publishes().pop().expect("a publish");
+        assert_eq!(
+            publish.start_ms,
+            Some(T0 + 10_000 - 600_000),
+            "the card carries the position at dispatch"
+        );
+    }
+
+    #[test]
+    fn one_step_emits_at_most_one_sample_demand() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+        host.load(&mut step, 1);
+
+        // A scrub burst before the core gets a chance to dispatch: ten seeks,
+        // each its own frame, and no more than one demand in any of them.
+        for position in 1..=10 {
+            host.live.time_pos = Some(position as f64);
+            let effects = host.frame(&mut step, Input::Mpv(MpvEvent::PlaybackRestart));
+            let demands = effects.iter().filter(|e| **e == Effect::Sample).count();
+            assert!(demands <= 1, "a frame emits at most one demand");
+        }
+        host.drain(&mut step);
+        host.advance(&mut step, BUCKET_CAPACITY as i64 * REFILL_MS);
+        // The last seek of the burst is the one whose position the card carries:
+        // playback restarts once, sampled at that position.
+        host.seek(&mut step, 10.0);
+
+        let publishes = host.publishes();
+        let publish = publishes.last().expect("a publish");
+        assert_eq!(
+            publish.start_ms,
+            Some(host.now - 10_000),
+            "the coalesced publish resamples the final position"
+        );
+        assert!(
+            publishes.len() < 10,
+            "the burst is one latest-wins update, not ten: got {}",
+            publishes.len()
+        );
+    }
+
+    #[test]
+    fn the_demand_never_chains() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+        host.load(&mut step, 1);
+
+        host.frame(&mut step, Input::Mpv(MpvEvent::PlaybackRestart));
+        assert!(step.awaiting_sample(), "the seek admits one demand");
+        let answered = host.frame(&mut step, Input::Sampled(host.live.clone()));
+        assert!(matches!(answered.as_slice(), [Effect::Publish(_)]));
+        assert!(
+            !step.awaiting_sample(),
+            "the answer feeds a publish, never another demand"
+        );
+
+        // An answer to no demand changes nothing.
+        let surplus = host.frame(&mut step, Input::Sampled(host.live.clone()));
+        assert_eq!(surplus, Vec::new());
+    }
+
+    #[test]
+    fn shutdown_clears_then_exits() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(true);
+        let mut step = open(&mut script, &mut host);
+        host.load(&mut step, 1);
+
+        let mut claim = host.claim.clone();
+        let done = step.step(
+            Frame::new(host.now, Input::Mpv(MpvEvent::Shutdown)),
+            &mut claim,
+        );
+
+        assert!(done.exit, "shutdown terminates the host loop");
+        assert_eq!(done.effects, vec![Effect::Clear]);
+        assert_eq!(
+            done.wake_at, None,
+            "an exited host has nothing left to wake for"
+        );
+    }
+
+    #[test]
+    fn an_unowned_shutdown_exits_without_a_clear() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut host = Host::new(false);
+        let mut step = open(&mut script, &mut host);
+        host.load(&mut step, 1);
+        let mut claim = host.claim.clone();
+        let done = step.step(
+            Frame::new(host.now, Input::Mpv(MpvEvent::Shutdown)),
+            &mut claim,
+        );
+
+        assert!(done.exit);
+        assert_eq!(done.effects, Vec::new());
+    }
+
+    #[test]
+    fn the_policy_defaults_reproduce_the_shipped_timing() {
+        let policy = Policy::default();
+        assert_eq!(policy.grace_ms, GRACE_MS);
+        assert_eq!(policy.bucket_capacity, BUCKET_CAPACITY);
+        assert_eq!(policy.refill_ms, REFILL_MS);
+        assert_eq!(policy.claim_debounce_ms, CLAIM_DEBOUNCE_MS);
+        assert_eq!(policy.claim_settle_ms, CLAIM_SETTLE_MS);
+        assert_eq!(policy.claim_poll_ms, CLAIM_POLL_MS);
+        assert_eq!(policy.miss_osd_seconds, MISS_OSD_SECONDS);
+        assert_eq!((GRACE_MS, REFILL_MS), (500, 4_000));
+        assert_eq!((BUCKET_CAPACITY, CLAIM_POLL_MS), (5, 250));
+        assert_eq!((CLAIM_DEBOUNCE_MS, CLAIM_SETTLE_MS), (300, 400));
+        assert_eq!(MISS_OSD_SECONDS, 5);
+    }
+
+    /// KERNEL TEST: a raw single step, for the race a user verb cannot express.
+    ///
+    /// The publish is admitted and its sample demanded in one step; the claim
+    /// moves to the other window in that gap; the answer lands on a Daemon that
+    /// no longer owns Discord. Only stepping by hand can interleave those three.
+    #[test]
+    fn a_publish_racing_a_handover_is_dropped() {
+        let mut script = Script {
+            answers: VecDeque::from([matched()]),
+            ..Script::default()
+        };
+        let mut claim = SharedClaim::default();
+        claim.claim(PID);
+
+        let file = path(1);
+        let mut step = StepBuilder::default().build(&mut script, PID, T0);
+        // The owner claim is adopted through the first step that reaches
+        // `admit`; a `FileLoaded` arriving while dormant marks no publish
+        // intent.
+        step.step(Frame::new(T0, Input::Timer), &mut claim);
+
+        // The load resolves the Match, clears the (empty) card first, and
+        // admits the publish: the sample is demanded in the same step.
+        let opened = step.step(
+            Frame::new(
+                T0,
+                Input::Mpv(MpvEvent::FileLoaded {
+                    path: file.to_owned(),
+                    live: live(&file, 0.0),
+                }),
+            ),
+            &mut claim,
+        );
+        assert!(
+            opened.effects.contains(&Effect::Sample),
+            "the publish is admitted and the sample demanded: got {:?}",
+            opened.effects
+        );
+        assert!(step.awaiting_sample());
+
+        // The other window takes the claim before the answer arrives.
+        claim.claim(PID + 1);
+
+        let answered = step.step(
+            Frame::new(T0, Input::Sampled(live(&file, 0.0))),
+            &mut claim,
+        );
+        assert!(
+            !answered
+                .effects
+                .iter()
+                .any(|effect| matches!(effect, Effect::Publish(_))),
+            "the racing publish is dropped: got {:?}",
+            answered.effects
+        );
     }
 }

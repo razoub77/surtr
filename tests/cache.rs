@@ -6,10 +6,14 @@ use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use surtr::anilist::{Candidate, Titles};
+use surtr::anilist::Candidate;
 use surtr::cache::{Cache, Cached, TTL_MS, VERSION};
 use surtr::clock::Clock;
 use surtr::matcher::{MediaSource, SourceError};
+
+mod support;
+
+use support::candidate;
 
 const T0: i64 = 1_700_000_000_000;
 
@@ -91,24 +95,6 @@ impl MediaSource for Source {
     fn entry(&mut self, _id: i64) -> Result<Candidate, SourceError> {
         self.calls.entries.set(self.calls.entries.get() + 1);
         self.entry_response.clone()
-    }
-}
-
-fn candidate(id: i64, romaji: &str) -> Candidate {
-    Candidate {
-        id,
-        format: Some("TV".into()),
-        season_year: None,
-        season: None,
-        status: None,
-        episodes: Some(12),
-        genres: Vec::new(),
-        title: Some(Titles {
-            romaji: Some(romaji.into()),
-            english: None,
-        }),
-        synonyms: Vec::new(),
-        cover_image: None,
     }
 }
 

@@ -2,297 +2,21 @@
 //! user applies (load a file, seek, pause, Toggle, end-file, focus the window,
 //! advance the clock, another window takes the claim), and the assertions are
 //! on recorded effects — Presence payload fields, clears, exact console and OSD
-//! text. No sockets, no pipes, no real time.
-//!
-//! The loop here is the one the daemon runs: one stimulus, then the timer at
-//! each wake the Runner asked for. Time is a plain integer in milliseconds.
-//! The one raw single-step test is marked as a kernel test: it exists to race a
-//! claim change into the middle of an admitted publish.
+//! text. The harness — the scripted lookup, the in-memory `owner.json`, and the
+//! one definition of “a turn of the daemon” — lives in `support`; the kernel's
+//! raw Frame-level surface is tested inside `daemon.rs`.
 
-use std::cell::{Cell, RefCell};
-use std::collections::VecDeque;
-use std::future::{ready, Future};
-use std::pin::Pin;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use surtr::daemon::{
-    Effect, Frame, Input, LiveState, Lookup, Metadata, MetadataClient, Miss, MpvEvent, OwnerClaim,
-    Policy, Presence, Property, Runner, Step, CLAIM_DEBOUNCE_MS, CLAIM_POLL_MS, CLAIM_SETTLE_MS,
-    GRACE_MS,
+    Effect, LiveState, Lookup, Metadata, MetadataClient, Miss, MpvEvent, OwnerClaim, Policy,
+    Property, Runner, CLAIM_DEBOUNCE_MS, CLAIM_POLL_MS, CLAIM_SETTLE_MS, GRACE_MS,
 };
 
-const T0: i64 = 1_700_000_000_000;
+mod support;
 
-/// The process id every test Daemon runs as.
-const PID: u32 = 4242;
-
-type BoxFuture<T> = Pin<Box<dyn Future<Output = T>>>;
-
-// ---------------------------------------------------------------------------
-// Harness: a scripted Match lookup and an in-memory owner.json
-// ---------------------------------------------------------------------------
-
-/// In-memory `owner.json`: `None` is an absent file. Cloned so a test can hand
-/// the claim to another window.
-#[derive(Clone, Default)]
-struct SharedClaim(Rc<Cell<Option<u32>>>);
-
-impl OwnerClaim for SharedClaim {
-    fn claim(&mut self, pid: u32) {
-        self.0.set(Some(pid));
-    }
-    fn owner(&self) -> Option<u32> {
-        self.0.get()
-    }
-}
-
-/// A scripted Match lookup: one Lookup Answer per lookup, `Unavailable` once
-/// the script runs out (no Presence, no report).
-#[derive(Default)]
-struct MockMetadata {
-    script: VecDeque<Lookup>,
-    /// Every path looked up, shared so a test can read it while the Runner
-    /// still holds the client.
-    lookups: Rc<RefCell<Vec<String>>>,
-}
-
-impl MockMetadata {
-    fn scripted(script: impl IntoIterator<Item = Lookup>) -> Self {
-        Self {
-            script: script.into_iter().collect(),
-            lookups: Rc::new(RefCell::new(Vec::new())),
-        }
-    }
-}
-
-impl MetadataClient for MockMetadata {
-    fn lookup(&mut self, path: &str) -> Lookup {
-        self.lookups.borrow_mut().push(path.to_owned());
-        self.script.pop_front().unwrap_or(Lookup::Unavailable)
-    }
-}
-
-/// The host side of the Runner: the clock, the live player as the host holds
-/// it, and every effect the Runner produced, in order.
-struct Host {
-    now: i64,
-    /// The player as mpv reports it, position excluded: position is only read
-    /// when a publish is dispatched.
-    observed: LiveState,
-    /// The position `time-pos` would report right now.
-    time_pos: Option<f64>,
-    effects: Vec<Effect>,
-}
-
-impl Host {
-    /// Most tests are about Presence, not arbitration: the host starts with
-    /// this window holding the claim, so the Daemon publishes as the Owner.
-    /// `dormant()` starts with no `owner.json`, for the ownership tests.
-    fn new() -> Self {
-        Self {
-            now: T0,
-            observed: LiveState::default(),
-            time_pos: None,
-            effects: Vec::new(),
-        }
-    }
-
-    fn dormant() -> Self {
-        Self::new()
-    }
-
-    /// The claim this host's Daemon carries: named after it when it owns
-    /// Discord, absent when dormant.
-    fn claim(&self, owning: bool) -> SharedClaim {
-        let claim = SharedClaim::default();
-        if owning {
-            claim.0.set(Some(PID));
-        }
-        claim
-    }
-
-    /// The answer to a sample demand: the observed player, with the position
-    /// read fresh at this instant.
-    fn sampler(&self) -> impl FnMut() -> BoxFuture<LiveState> + '_ {
-        move || {
-            Box::pin(ready(LiveState {
-                time_pos: self.time_pos,
-                ..self.observed.clone()
-            }))
-        }
-    }
-
-    fn advance(&mut self, millis: i64) {
-        self.now += millis;
-    }
-
-    /// One turn of the daemon loop, then the timer at each wake the Runner
-    /// asked for, until it is quiet or the turns run out. A claim poll
-    /// re-arms itself so the host would sleep again; the test takes a few
-    /// turns and stops.
-    async fn run(&mut self, runner: &mut Runner<'_, SharedClaim>, event: MpvEvent) -> Vec<Effect> {
-        // The adapter reports the player it observed with the event; every
-        // other event is observed through the properties mpv already told us.
-        let effects = self.turn(runner, event).await;
-        let mut effects = effects;
-        for _ in 0..4 {
-            let Some(at) = runner.wake_at() else { break };
-            if at > self.now {
-                self.now = at;
-            }
-            effects.extend(runner.timer(self.now, &mut self.sampler()).await);
-            if runner.has_exited() {
-                break;
-            }
-        }
-        self.effects.extend(effects.iter().cloned());
-        effects
-    }
-
-    /// Exactly one stimulus, no follow-up timers: the host has not slept yet,
-    /// so anything waiting for its wake is still waiting.
-    async fn turn(&mut self, runner: &mut Runner<'_, SharedClaim>, event: MpvEvent) -> Vec<Effect> {
-        let observed = match &event {
-            MpvEvent::FileLoaded { live, .. } => {
-                self.observed = live.clone();
-                self.time_pos = live.time_pos;
-                live.clone()
-            }
-            _ => self.observed.clone(),
-        };
-        runner.mpv(self.now, event, observed, &mut self.sampler()).await
-    }
-
-    /// The player starts playing `file` at `at` seconds: the observed
-    /// properties change, the position follows. A duration of `None` is an
-    /// unknown length (no progress bar).
-    fn play(&mut self, file: &str, at: f64, duration: Option<f64>) {
-        self.observed.path = Some(file.to_owned());
-        self.observed.duration = duration;
-        self.time_pos = Some(at);
-    }
-
-    /// Loads `file`. The load reports the snapshot it read, position included.
-    async fn load(&mut self, runner: &mut Runner<'_, SharedClaim>, file: &str) {
-        self.play(file, 0.0, Some(1440.0));
-        let event = MpvEvent::FileLoaded {
-            path: file.to_owned(),
-            live: self.observed.clone(),
-        };
-        self.turn_and_record(runner, event).await;
-    }
-
-    /// Loads `file` with the observed player the test set up already (duration,
-    /// speed, pause, Toggle), starting `at` seconds in.
-    async fn load_as_observed(
-        &mut self,
-        runner: &mut Runner<'_, SharedClaim>,
-        file: &str,
-        at: f64,
-    ) {
-        self.observed.path = Some(file.to_owned());
-        self.time_pos = Some(at);
-        let event = MpvEvent::FileLoaded {
-            path: file.to_owned(),
-            live: self.observed.clone(),
-        };
-        self.turn_and_record(runner, event).await;
-    }
-
-    async fn trigger(&mut self, runner: &mut Runner<'_, SharedClaim>, event: MpvEvent) {
-        self.turn_and_record(runner, event).await;
-    }
-
-    /// The host's sleep expired: the time moved and nothing else happened.
-    async fn timer(&mut self, runner: &mut Runner<'_, SharedClaim>) {
-        let effects = runner.timer(self.now, &mut self.sampler()).await;
-        self.effects.extend(effects);
-    }
-
-    /// The whole claim sequence: focus (debounce, the claim write, the
-    /// settle) then the publish from the live snapshot. Each step is one turn
-    /// so the clock is the test's, not the drain loop's.
-    async fn focus_in(&mut self, runner: &mut Runner<'_, SharedClaim>) {
-        self.turn_and_record(runner, MpvEvent::FocusChanged(true)).await;
-        self.advance(CLAIM_DEBOUNCE_MS);
-        self.timer(runner).await;
-        self.advance(CLAIM_SETTLE_MS);
-        self.timer(runner).await;
-    }
-
-    async fn turn_and_record(
-        &mut self,
-        runner: &mut Runner<'_, SharedClaim>,
-        event: MpvEvent,
-    ) {
-        let effects = self.turn(runner, event).await;
-        self.effects.extend(effects);
-    }
-
-    /// Focus in, then load and play the file as the Owner.
-    async fn own(&mut self, runner: &mut Runner<'_, SharedClaim>, file: &str) {
-        self.focus_in(runner).await;
-        self.load(runner, file).await;
-    }
-
-    fn publishes(&self) -> Vec<Presence> {
-        self.effects
-            .iter()
-            .filter_map(|effect| match effect {
-                Effect::Publish(presence) => Some(presence.clone()),
-                _ => None,
-            })
-            .collect()
-    }
-
-    fn last_publish(&self) -> Presence {
-        self.publishes().pop().expect("a publish")
-    }
-
-    fn clears(&self) -> usize {
-        self.effects
-            .iter()
-            .filter(|effect| matches!(effect, Effect::Clear))
-            .count()
-    }
-
-    fn last_effect(&self) -> Option<&Effect> {
-        self.effects.last()
-    }
-
-    /// `P` for a published card, `-` for a clear: the exact sequence of
-    /// Presence writes the host applied.
-    fn card_sequence(&self) -> String {
-        self.effects
-            .iter()
-            .filter_map(|effect| match effect {
-                Effect::Publish(_) => Some('P'),
-                Effect::Clear => Some('-'),
-                _ => None,
-            })
-            .collect()
-    }
-
-    fn logs(&self) -> Vec<String> {
-        self.effects
-            .iter()
-            .filter_map(|effect| match effect {
-                Effect::Log(text) => Some(text.clone()),
-                _ => None,
-            })
-            .collect()
-    }
-
-    fn osds(&self) -> Vec<(String, u64)> {
-        self.effects
-            .iter()
-            .filter_map(|effect| match effect {
-                Effect::Osd { text, seconds } => Some((text.clone(), *seconds)),
-                _ => None,
-            })
-            .collect()
-    }
-}
+use support::{matched, metadata, Host, Script, PID, T0};
 
 /// Hermetic paths: no real directory decides eligibility in the tests. The
 /// shipped policy is the default; timing tests use their own literals.
@@ -300,16 +24,6 @@ const ANIME_ROOT: &str = r"D:\Anime";
 
 fn policy() -> Policy {
     Policy::default()
-}
-
-fn metadata(title: &str) -> Metadata {
-    Metadata {
-        id: 1,
-        title: title.to_owned(),
-        episode: None,
-        hover: title.to_owned(),
-        cover: None,
-    }
 }
 
 fn episode(title: &str, episode_segment: &str) -> Metadata {
@@ -323,9 +37,7 @@ fn movie() -> Metadata {
     Metadata {
         id: 1723,
         title: "Clannad Movie".into(),
-        episode: None,
-        hover: "Clannad Movie".into(),
-        cover: None,
+        ..metadata("Clannad Movie")
     }
 }
 
@@ -344,9 +56,9 @@ fn live(file: &str, time_pos: f64, duration: f64) -> LiveState {
 
 #[tokio::test]
 async fn file_loaded_publishes_watching_presence_with_live_timestamps() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 01.mkv";
     host.observed = live(file, 120.0, 1440.0);
@@ -362,9 +74,9 @@ async fn file_loaded_publishes_watching_presence_with_live_timestamps() {
 
 #[tokio::test]
 async fn timestamps_scale_with_playback_speed() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 01.mkv";
     host.observed = LiveState {
@@ -381,9 +93,9 @@ async fn timestamps_scale_with_playback_speed() {
 
 #[tokio::test]
 async fn a_speed_change_republishes_from_the_live_position() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 01.mkv";
     host.observed = live(file, 120.0, 1440.0);
@@ -408,9 +120,9 @@ async fn a_speed_change_republishes_from_the_live_position() {
 
 #[tokio::test]
 async fn missing_duration_publishes_without_timestamps() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Short clip"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Short clip"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\clip.webm";
     host.observed = LiveState {
@@ -426,9 +138,9 @@ async fn missing_duration_publishes_without_timestamps() {
 
 #[tokio::test]
 async fn a_movie_publishes_a_progress_bar_without_an_episode_line() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(movie())]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(movie())]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Clannad Movie.mkv";
     host.observed = LiveState {
@@ -445,9 +157,9 @@ async fn a_movie_publishes_a_progress_bar_without_an_episode_line() {
 
 #[tokio::test]
 async fn shutdown_clears_presence_and_exits() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
     host.trigger(&mut runner, MpvEvent::Shutdown).await;
@@ -458,9 +170,9 @@ async fn shutdown_clears_presence_and_exits() {
 
 #[tokio::test]
 async fn no_match_clears_instead_of_publishing() {
-    let mut script = MockMetadata::scripted([Lookup::Unavailable]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Unavailable]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\HomeVideos\birthday.mp4").await;
 
@@ -470,10 +182,10 @@ async fn no_match_clears_instead_of_publishing() {
 
 #[tokio::test]
 async fn non_local_path_is_skipped_with_a_console_line() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("ignored"))]);
-    let mut host = Host::new();
-    let lookups = script.lookups.clone();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("ignored"))]);
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, "https://example.com/stream.m3u8").await;
 
@@ -488,23 +200,35 @@ async fn non_local_path_is_skipped_with_a_console_line() {
 
 #[tokio::test]
 async fn files_outside_the_anime_roots_produce_no_presence_and_no_lookup() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("ignored"))]);
-    let mut host = Host::new();
-    let lookups = script.lookups.clone();
+    let mut script = Script::scripted([
+        Lookup::Matched(metadata("Frieren")),
+        Lookup::Matched(metadata("ignored")),
+    ]);
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
     let mut runner = Runner::new(
         &mut script,
-        host.claim(true),
+        host.claim(),
         PID,
         T0,
         policy(),
         vec![ANIME_ROOT.to_owned()],
     );
 
+    // A file inside the Root is looked up and published.
+    host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
+    assert_eq!(host.publishes().len(), 1);
+
     let file = r"D:\Anime2\Show - 01.mkv";
     host.load(&mut runner, file).await;
 
-    assert!(host.publishes().is_empty());
-    assert!(lookups.borrow().is_empty(), "no lookup outside a root");
+    assert_eq!(host.publishes().len(), 1, "no presence outside a root");
+    assert_eq!(host.clears(), 1, "the old card is blanked");
+    assert_eq!(
+        *lookups.borrow(),
+        vec![r"D:\Anime\Frieren - 01.mkv".to_owned()],
+        "no lookup outside a root"
+    );
     assert!(host.osds().is_empty(), "out-of-root never shows an OSD");
     assert_eq!(
         host.logs(),
@@ -514,13 +238,37 @@ async fn files_outside_the_anime_roots_produce_no_presence_and_no_lookup() {
 }
 
 #[tokio::test]
+async fn init_installs_the_anime_roots_for_every_eligible_file() {
+    let mut script = Script::scripted([matched()]);
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(
+        &mut script,
+        host.claim(),
+        PID,
+        T0,
+        policy(),
+        vec![ANIME_ROOT.to_owned()],
+    );
+
+    host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
+
+    assert_eq!(
+        *lookups.borrow(),
+        vec![r"D:\Anime\Frieren - 01.mkv".to_owned()],
+        "a file inside the Root is looked up"
+    );
+    assert_eq!(host.publishes().len(), 1);
+}
+
+#[tokio::test]
 async fn a_new_path_clears_the_old_card_before_the_lookup() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::Matched(metadata("First")),
         Lookup::Matched(metadata("Second")),
     ]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\First - 01.mkv").await;
     assert_eq!(host.card_sequence(), "P");
@@ -556,10 +304,10 @@ async fn a_new_path_clears_the_old_card_before_the_lookup() {
 
 #[tokio::test]
 async fn a_repeated_file_loaded_does_not_lookup_twice() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let lookups = script.lookups.clone();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 01.mkv";
     host.load(&mut runner, file).await;
@@ -583,9 +331,9 @@ async fn a_repeated_file_loaded_does_not_lookup_twice() {
 
 #[tokio::test]
 async fn seek_republishes_from_the_new_position() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
@@ -599,9 +347,9 @@ async fn seek_republishes_from_the_new_position() {
 
 #[tokio::test]
 async fn a_scrub_burst_coalesces_to_one_update() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
     assert_eq!(host.publishes().len(), 1);
@@ -644,9 +392,9 @@ async fn a_scrub_burst_coalesces_to_one_update() {
 
 #[tokio::test]
 async fn the_token_bucket_allows_five_updates_then_one_every_four_seconds() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
@@ -670,9 +418,9 @@ async fn the_token_bucket_allows_five_updates_then_one_every_four_seconds() {
 #[tokio::test]
 async fn pause_drops_timestamps_and_leads_the_state_with_paused() {
     let mut script =
-        MockMetadata::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+        Script::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 05.mkv";
     host.observed = live(file, 120.0, 1440.0);
@@ -698,9 +446,9 @@ async fn pause_drops_timestamps_and_leads_the_state_with_paused() {
 #[tokio::test]
 async fn unpause_republishes_with_fresh_timestamps() {
     let mut script =
-        MockMetadata::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+        Script::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 05.mkv";
     host.observed = live(file, 120.0, 1440.0);
@@ -725,9 +473,9 @@ async fn unpause_republishes_with_fresh_timestamps() {
 
 #[tokio::test]
 async fn a_paused_movie_gets_a_paused_state() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(movie())]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(movie())]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Clannad Movie.mkv";
     host.observed = live(file, 300.0, 4500.0);
@@ -749,9 +497,9 @@ async fn a_paused_movie_gets_a_paused_state() {
 #[tokio::test]
 async fn a_long_pause_never_times_out() {
     let mut script =
-        MockMetadata::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+        Script::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 05.mkv";
     host.observed = live(file, 120.0, 1440.0);
@@ -777,9 +525,9 @@ async fn a_long_pause_never_times_out() {
 
 #[tokio::test]
 async fn end_file_clears_after_the_grace_window() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
@@ -797,13 +545,33 @@ async fn end_file_clears_after_the_grace_window() {
 }
 
 #[tokio::test]
+async fn the_grace_window_is_the_policy_value() {
+    let mut script = Script::scripted([matched()]);
+    let mut host = Host::new(true);
+    let policy = Policy {
+        grace_ms: 1_000,
+        ..Policy::default()
+    };
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy, Vec::new());
+    host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
+
+    host.trigger(&mut runner, MpvEvent::EndFile).await;
+    host.advance(999);
+    host.timer(&mut runner).await;
+    assert_eq!(host.clears(), 0, "the long grace holds the card");
+    host.advance(1);
+    host.timer(&mut runner).await;
+    assert_eq!(host.clears(), 1);
+}
+
+#[tokio::test]
 async fn a_playlist_advance_inside_the_grace_window_does_not_blank() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::Matched(metadata("Frieren")),
         Lookup::Matched(metadata("Frieren")),
     ]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
     host.trigger(&mut runner, MpvEvent::EndFile).await;
@@ -817,9 +585,9 @@ async fn a_playlist_advance_inside_the_grace_window_does_not_blank() {
 
 #[tokio::test]
 async fn eof_reached_clears_and_a_seek_back_republishes() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
@@ -838,9 +606,9 @@ async fn eof_reached_clears_and_a_seek_back_republishes() {
 
 #[tokio::test]
 async fn a_clear_beats_a_publish_when_both_are_pending() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
     // Refill the bucket so the Toggle-off clear and the Toggle-on publish can
@@ -889,10 +657,10 @@ async fn a_clear_beats_a_publish_when_both_are_pending() {
 
 #[tokio::test]
 async fn a_dormant_daemon_resolves_but_publishes_nothing() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::dormant();
-    let lookups = script.lookups.clone();
-    let mut runner = Runner::new(&mut script, host.claim(false), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(false);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
@@ -907,9 +675,9 @@ async fn a_dormant_daemon_resolves_but_publishes_nothing() {
 
 #[tokio::test]
 async fn focused_true_claims_ownership_after_the_debounce() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::dormant();
-    let claim = host.claim(false);
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(false);
+    let claim = host.claim();
     let seen = claim.clone();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
 
@@ -927,11 +695,11 @@ async fn focused_true_claims_ownership_after_the_debounce() {
 
 #[tokio::test]
 async fn the_fresh_owner_publishes_live_state_after_the_settle() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::dormant();
-    let claim = host.claim(false);
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(false);
+    let claim = host.claim();
     let seen = claim.clone();
-    let lookups = script.lookups.clone();
+    let lookups = script.lookups();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
     let file = r"D:\Anime\Frieren - 05.mkv";
 
@@ -948,6 +716,11 @@ async fn the_fresh_owner_publishes_live_state_after_the_settle() {
     assert!(
         host.effects.is_empty(),
         "the previous Owner needs the settle to clear"
+    );
+    let wake = runner.wake_at().expect("a settle wake");
+    assert!(
+        wake <= T0 + CLAIM_DEBOUNCE_MS + CLAIM_SETTLE_MS,
+        "the settle lands within the policy window, got {wake}"
     );
 
     host.advance(CLAIM_SETTLE_MS);
@@ -968,9 +741,9 @@ async fn the_fresh_owner_publishes_live_state_after_the_settle() {
 
 #[tokio::test]
 async fn losing_focus_to_another_application_keeps_the_card() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
     assert_eq!(host.publishes().len(), 1);
 
@@ -993,9 +766,9 @@ async fn losing_focus_to_another_application_keeps_the_card() {
 
 #[tokio::test]
 async fn refocusing_an_owner_writes_no_new_claim_and_keeps_the_card() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
     host.trigger(&mut runner, MpvEvent::FocusChanged(false)).await;
@@ -1007,9 +780,9 @@ async fn refocusing_an_owner_writes_no_new_claim_and_keeps_the_card() {
 
 #[tokio::test]
 async fn a_new_claim_makes_the_previous_owner_clear_within_one_poll() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let claim = host.claim(true);
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let claim = host.claim();
     let mut other_window = claim.clone();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
 
@@ -1031,15 +804,26 @@ async fn a_new_claim_makes_the_previous_owner_clear_within_one_poll() {
 }
 
 #[tokio::test]
+async fn an_owner_repolls_the_claim_on_the_policy_cadence() {
+    let mut script = Script::scripted([matched()]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
+    host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
+
+    let wake = runner.wake_at().expect("a poll");
+    assert_eq!(wake, host.now + CLAIM_POLL_MS);
+}
+
+#[tokio::test]
 async fn a_preempted_daemon_keeps_observing_but_never_publishes_again() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::Matched(metadata("Frieren")),
         Lookup::Matched(metadata("Frieren")),
     ]);
-    let mut host = Host::new();
-    let claim = host.claim(true);
+    let mut host = Host::new(true);
+    let claim = host.claim();
     let mut other_window = claim.clone();
-    let lookups = script.lookups.clone();
+    let lookups = script.lookups();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
 
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
@@ -1073,59 +857,6 @@ async fn a_preempted_daemon_keeps_observing_but_never_publishes_again() {
     assert_eq!(other_window.owner(), Some(PID + 1));
 }
 
-/// KERNEL TEST: a raw single step, for the race a user verb cannot express.
-///
-/// The publish is admitted and its sample demanded in one step; the claim
-/// moves to the other window in that gap; the answer lands on a Daemon that no
-/// longer owns Discord. Only stepping by hand can interleave those three.
-#[tokio::test]
-async fn a_publish_racing_a_handover_is_dropped() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut claim = SharedClaim::default();
-    claim.claim(PID);
-
-    let file = r"D:\Anime\Frieren - 01.mkv";
-    let mut step = Step::new(&mut script, PID, T0);
-    // The owner claim is adopted through the first step that reaches `admit`;
-    // a `FileLoaded` arriving while dormant marks no publish intent.
-    step.step(Frame::new(T0, Input::Timer), &mut claim);
-
-    // The load resolves the Match, clears the (empty) card first, and admits
-    // the publish: the sample is demanded in the same step.
-    let opened = step.step(
-        Frame::new(
-            T0,
-            Input::Mpv(MpvEvent::FileLoaded {
-                path: file.to_owned(),
-                live: live(file, 0.0, 1440.0),
-            }),
-        ),
-        &mut claim,
-    );
-    assert!(
-        opened.effects.contains(&Effect::Sample),
-        "the publish is admitted and the sample demanded: got {:?}",
-        opened.effects
-    );
-    assert!(step.awaiting_sample());
-
-    // The other window takes the claim before the answer arrives.
-    claim.claim(PID + 1);
-
-    let answered = step.step(
-        Frame::new(T0, Input::Sampled(live(file, 0.0, 1440.0))),
-        &mut claim,
-    );
-    assert!(
-        !answered
-            .effects
-            .iter()
-            .any(|effect| matches!(effect, Effect::Publish(_))),
-        "the racing publish is dropped: got {:?}",
-        answered.effects
-    );
-}
-
 /// KERNEL TEST: the clear the raced publish leaves behind reaches the host.
 ///
 /// Same interleaving as above, played through the Runner once the kernel has
@@ -1133,9 +864,9 @@ async fn a_publish_racing_a_handover_is_dropped() {
 /// what the Runner's own loop would apply.
 #[tokio::test]
 async fn a_handover_after_the_admission_clears_the_old_card() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let claim = host.claim(true);
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let claim = host.claim();
     let mut other_window = claim.clone();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
 
@@ -1153,9 +884,9 @@ async fn a_handover_after_the_admission_clears_the_old_card() {
 
 #[tokio::test]
 async fn a_claim_lost_during_the_settle_publishes_nothing() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::dormant();
-    let claim = host.claim(false);
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(false);
+    let claim = host.claim();
     let mut other_window = claim.clone();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
@@ -1184,14 +915,14 @@ async fn a_claim_lost_during_the_settle_publishes_nothing() {
 
 #[tokio::test]
 async fn toggle_off_during_a_lookup_stays_hidden_and_toggle_on_republishes_the_match() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::RateLimited(30_000),
         Lookup::Matched(metadata("Frieren")),
     ]);
-    let mut host = Host::dormant();
-    let claim = host.claim(false);
+    let mut host = Host::new(false);
+    let claim = host.claim();
     let seen = claim.clone();
-    let lookups = script.lookups.clone();
+    let lookups = script.lookups();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
 
     // The window is focused and owns Discord before anything loads.
@@ -1232,10 +963,10 @@ async fn toggle_off_during_a_lookup_stays_hidden_and_toggle_on_republishes_the_m
 
 #[tokio::test]
 async fn toggle_off_hides_the_live_match_and_toggle_on_brings_it_back_from_memory() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let lookups = script.lookups.clone();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
     assert_eq!(host.publishes().len(), 1);
 
@@ -1258,9 +989,9 @@ async fn toggle_off_hides_the_live_match_and_toggle_on_brings_it_back_from_memor
 
 #[tokio::test]
 async fn toggle_off_during_a_pending_publish_clears_at_once() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
     host.own(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
     // Take the seek's publish intent out of reach: drain the bucket so no
@@ -1299,9 +1030,9 @@ async fn toggle_off_during_a_pending_publish_clears_at_once() {
 
 #[tokio::test]
 async fn toggle_on_cannot_claim_discord_for_a_dormant_daemon() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::dormant();
-    let claim = host.claim(false);
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(false);
+    let claim = host.claim();
     let seen = claim.clone();
     let mut runner = Runner::new(&mut script, claim, PID, T0, policy(), Vec::new());
 
@@ -1317,23 +1048,41 @@ async fn toggle_on_cannot_claim_discord_for_a_dormant_daemon() {
     assert_eq!(seen.owner(), None);
 }
 
+#[tokio::test]
+async fn toggle_off_behind_a_dormant_daemon_emits_nothing() {
+    let mut script = Script::scripted([matched()]);
+    let mut host = Host::new(false);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
+    host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
+    host.observed.enabled = false;
+    host.trigger(&mut runner, MpvEvent::Property(Property::Enabled(false)))
+        .await;
+
+    assert!(host.effects.is_empty(), "no card, no clear, no claim");
+}
+
 // ---------------------------------------------------------------------------
 // 429 retry and Discord reconnect
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
 async fn a_429_schedules_one_deferred_retry() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::RateLimited(30_000),
         Lookup::Matched(metadata("Frieren")),
     ]);
-    let mut host = Host::new();
-    let lookups = script.lookups.clone();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Frieren - 01.mkv";
     host.load(&mut runner, file).await;
 
+    assert_eq!(
+        runner.wake_at(),
+        Some(T0 + CLAIM_POLL_MS),
+        "a 429 does not beat the Owner's claim poll"
+    );
     assert_eq!(*lookups.borrow(), vec![file.to_owned()]);
     assert!(host.publishes().is_empty(), "429 is not a Match");
 
@@ -1378,10 +1127,10 @@ async fn an_out_of_root_file_is_reported_once_and_never_retried() {
 
     let mut client = RateLimited::default();
     let lookups = client.lookups.clone();
-    let mut host = Host::new();
+    let mut host = Host::new(true);
     let mut runner = Runner::new(
         &mut client,
-        host.claim(true),
+        host.claim(),
         PID,
         T0,
         policy(),
@@ -1426,13 +1175,13 @@ async fn an_out_of_root_file_is_reported_once_and_never_retried() {
 
 #[tokio::test]
 async fn a_file_change_cancels_the_deferred_retry() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::RateLimited(30_000),
         Lookup::Matched(metadata("Second")),
     ]);
-    let mut host = Host::new();
-    let lookups = script.lookups.clone();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let first = r"D:\Anime\First - 01.mkv";
     let second = r"D:\Anime\Second - 01.mkv";
@@ -1453,10 +1202,10 @@ async fn a_file_change_cancels_the_deferred_retry() {
 
 #[tokio::test]
 async fn reconnect_republishes_from_live_state_without_a_lookup() {
-    let mut script = MockMetadata::scripted([Lookup::Matched(metadata("Frieren"))]);
-    let mut host = Host::new();
-    let lookups = script.lookups.clone();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
+    let mut host = Host::new(true);
+    let lookups = script.lookups();
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
@@ -1480,11 +1229,11 @@ async fn reconnect_republishes_from_live_state_without_a_lookup() {
 #[tokio::test]
 async fn a_repairable_miss_shows_one_osd_and_one_console_line_per_file() {
     let mut script =
-        MockMetadata::scripted([Lookup::Missed(Miss::Repairable {
+        Script::scripted([Lookup::Missed(Miss::Repairable {
         key: "honzuki no gekokujou".to_owned(),
     })]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Honzuki no Gekokujou S01E01.mkv")
         .await;
@@ -1508,13 +1257,37 @@ async fn a_repairable_miss_shows_one_osd_and_one_console_line_per_file() {
 }
 
 #[tokio::test]
+async fn the_miss_osd_duration_is_the_policy_value() {
+    let mut script = Script::scripted([Lookup::Missed(Miss::Repairable {
+        key: "frieren".to_owned(),
+    })]);
+    let mut host = Host::new(true);
+    let policy = Policy {
+        miss_osd_seconds: 7,
+        ..Policy::default()
+    };
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy, Vec::new());
+    host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
+
+    assert_eq!(
+        host.logs(),
+        vec![r#"Surtr: no Anime match for "frieren""#.to_owned()],
+        "a repairable miss is a console line, then the OSD"
+    );
+    assert_eq!(
+        host.osds(),
+        vec![(r#"Surtr: no Anime match for "frieren""#.to_owned(), 7)]
+    );
+}
+
+#[tokio::test]
 async fn a_miss_is_silent_when_the_file_loads_behind_the_toggle_off() {
     let mut script =
-        MockMetadata::scripted([Lookup::Missed(Miss::Repairable {
+        Script::scripted([Lookup::Missed(Miss::Repairable {
         key: "honzuki no gekokujou".to_owned(),
     })]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Honzuki no Gekokujou S01E01.mkv";
     host.observed = LiveState {
@@ -1537,11 +1310,11 @@ async fn a_miss_is_silent_when_the_file_loads_behind_the_toggle_off() {
 #[tokio::test]
 async fn a_fatal_miss_logs_a_console_line_but_never_an_osd() {
     let mut script =
-        MockMetadata::scripted([Lookup::Missed(Miss::Fatal {
+        Script::scripted([Lookup::Missed(Miss::Fatal {
         reason: "batch range or multi-episode file".to_owned(),
     })]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Show - 01-12.mkv";
     host.load(&mut runner, file).await;
@@ -1557,9 +1330,9 @@ async fn a_fatal_miss_logs_a_console_line_but_never_an_osd() {
 
 #[tokio::test]
 async fn a_silent_miss_produces_no_console_line_and_no_osd() {
-    let mut script = MockMetadata::scripted([Lookup::Unavailable]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut script = Script::scripted([Lookup::Unavailable]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\HomeVideos\birthday.mp4").await;
 
@@ -1569,14 +1342,14 @@ async fn a_silent_miss_produces_no_console_line_and_no_osd() {
 
 #[tokio::test]
 async fn a_rate_limited_lookup_stays_silent_until_the_retry_fails() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::RateLimited(30_000),
         Lookup::Missed(Miss::Repairable {
         key: "honzuki no gekokujou".to_owned(),
     }),
     ]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     host.load(&mut runner, r"D:\Anime\Honzuki no Gekokujou S01E01.mkv")
         .await;
@@ -1596,7 +1369,7 @@ async fn a_rate_limited_lookup_stays_silent_until_the_retry_fails() {
 
 #[tokio::test]
 async fn a_repeated_announce_of_the_same_missed_file_does_not_repeat_the_osd() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::Missed(Miss::Repairable {
         key: "honzuki no gekokujou".to_owned(),
     }),
@@ -1604,8 +1377,8 @@ async fn a_repeated_announce_of_the_same_missed_file_does_not_repeat_the_osd() {
         key: "honzuki no gekokujou".to_owned(),
     }),
     ]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     // The adapter can announce the same file twice (startup read plus
     // `file-loaded`); the user sees the miss once.
@@ -1619,7 +1392,7 @@ async fn a_repeated_announce_of_the_same_missed_file_does_not_repeat_the_osd() {
 
 #[tokio::test]
 async fn a_missed_file_reports_again_when_reloaded_after_end_file() {
-    let mut script = MockMetadata::scripted([
+    let mut script = Script::scripted([
         Lookup::Missed(Miss::Repairable {
         key: "honzuki no gekokujou".to_owned(),
     }),
@@ -1627,8 +1400,8 @@ async fn a_missed_file_reports_again_when_reloaded_after_end_file() {
         key: "honzuki no gekokujou".to_owned(),
     }),
     ]);
-    let mut host = Host::new();
-    let mut runner = Runner::new(&mut script, host.claim(true), PID, T0, policy(), Vec::new());
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
 
     let file = r"D:\Anime\Honzuki no Gekokujou S01E01.mkv";
     host.load(&mut runner, file).await;
