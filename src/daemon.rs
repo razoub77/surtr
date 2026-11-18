@@ -58,7 +58,7 @@ pub const CLAIM_DEBOUNCE_MS: Millis = 300;
 pub const CLAIM_SETTLE_MS: Millis = 400;
 
 /// The Owner re-reads `owner.json` at this cadence while it has a card up, so
-/// a handover clears the old card within one poll (issue 04).
+/// a handover clears the old card within one poll.
 /// The shipped [`Policy::claim_poll_ms`].
 pub const CLAIM_POLL_MS: Millis = 250;
 
@@ -116,13 +116,13 @@ impl Lookup {
     }
 }
 
-/// Looks up a played file. The production client queries AniList/cache
-/// (ticket 03); tests inject recorded answers.
+/// Looks up a played file. The production client queries AniList/cache;
+/// tests inject recorded answers.
 pub trait MetadataClient {
     fn lookup(&mut self, path: &str) -> Lookup;
 }
 
-/// Why a lookup found no Match (issue 07). The rule of thumb: a repairable
+/// Why a lookup found no Match. The rule of thumb: a repairable
 /// miss is one an `overrides.json` line could plausibly fix, so it earns an
 /// OSD; a fatal miss only gets a console line.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -183,7 +183,7 @@ pub trait OwnerClaim {
 // - effects are interpreted by the host in order, never inspected by the
 //   kernel to decide what to do next.
 
-/// For how long the Miss OSD stays on screen (issue 07).
+/// For how long the Miss OSD stays on screen.
 /// The shipped [`Policy::miss_osd_seconds`].
 pub const MISS_OSD_SECONDS: u64 = 5;
 
@@ -767,7 +767,7 @@ impl<'a> Step<'a> {
             }
             // A 429 is not a definitive miss: one deferred retry honours
             // Retry-After, and the report waits for the retry that actually
-            // answers (issue 07).
+            // answers.
             Lookup::RateLimited(delay) if !is_retry => {
                 self.current = None;
                 self.request_clear(now);
@@ -787,7 +787,7 @@ impl<'a> Step<'a> {
         }
     }
 
-    /// The one failure report per loaded file (issue 07): a repairable miss
+    /// The one failure report per loaded file: a repairable miss
     /// is a console line then a 5 s OSD naming the override key, a fatal miss
     /// is a console line only, and a file loaded behind the Toggle-off stays
     /// silent. An answer with no Miss (a failed request, or a throttle whose

@@ -58,7 +58,7 @@ struct PendingSample {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outbound {
     /// A console line: `script-message surtr-log`, re-emitted by Lua as
-    /// `mp.msg.error` so the console prefixes it with `[surtr]` (issue 07).
+    /// `mp.msg.error` so the console prefixes it with `[surtr]`.
     Log(String),
     /// A transient OSD toast: `show-text`, visible for `seconds`.
     ShowText { text: String, seconds: u64 },

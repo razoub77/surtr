@@ -219,7 +219,7 @@ pub async fn run_publisher(
                                  (no answer or refusal on every pipe). Check that the \
                                  Discord app is running and signed in, and that \
                                  SURTR_CLIENT_ID names a registered application \
-                                 (README §2)."
+                                 (README §3 Configure)."
                                     .to_owned(),
                             ));
                         }
@@ -274,7 +274,7 @@ pub async fn run_publisher(
                 // and quote a rejected update: Discord validates text lengths
                 // client-side and answers with an ERROR frame on this same
                 // live connection, never a closed pipe. Without this the
-                // absent card has no explanation in any console (issue 07).
+                // absent card has no explanation in any console.
                 read = read_frame(&mut reader) => {
                     match read {
                         Ok((_, payload)) => {

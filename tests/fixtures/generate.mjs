@@ -1,10 +1,10 @@
-// Generate tests/fixtures/anilist-cor.json and refresh the node payloads of
+// Generate tests/fixtures/anilist-corpus.json and refresh the node payloads of
 // tests/fixtures/anilist-relations.json from the live AniList API.
 //
 //   node tests/fixtures/generate.mjs
 //
-// The corpus was first recorded from the caches harvested during issue 02's
-// match-quality research; this script refetches every recorded query (the
+// The corpus was first recorded from live search caches; this script
+// refetches every recorded query (the
 // normalized key is exactly what the Rust matcher searches) so new AniList
 // fields — `season`, `status`, `genres` — reach the fixtures too. The suite
 // never touches the network; regenerate only when the query set, the fetched

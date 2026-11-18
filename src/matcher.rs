@@ -234,7 +234,7 @@ impl<S: MediaSource> Matcher<S> {
         }
         // A query that got no answer at all is a transport failure, not a
         // miss; only a definitive zero or a lost score-off is repairable by
-        // one `overrides.json` line naming the searched key (issue 07).
+        // one `overrides.json` line naming the searched key.
         if answered {
             let key = miss_key.expect("an answered pass searched at least one query");
             let missed = Lookup::Missed(Miss::Repairable {
@@ -271,7 +271,7 @@ impl<S: MediaSource> Matcher<S> {
         parsed: &release::ParsedRelease,
         corroborate: bool,
     ) -> Lookup {
-        // The override key a user could add to repair this miss (issue 07).
+        // The override key a user could add to repair this miss.
         let key = scorer::normalize(&parsed.title);
         if let Some(season) = parsed.season {
             // `Season N` was in the query; the entry must carry the same
@@ -378,7 +378,7 @@ impl<S: MediaSource> Matcher<S> {
     /// chain ends (its episode renders without a denominator, the same as an
     /// unknown total on a direct match); only a second counted season *after*
     /// it blocks the walk, since the number could belong to either. Each way
-    /// the walk can fail carries its own report (issue 07): an ambiguous
+    /// the walk can fail carries its own report: an ambiguous
     /// branch is repairable — one override naming a sequel could still
     /// produce a card — while an overrun and a chain leaving the seasons are
     /// console-only, and a failed request answers no Miss at all.
@@ -504,7 +504,7 @@ fn stronger(previous: Lookup, next: Lookup) -> Lookup {
 }
 
 /// The console reason for a parser rejection: no single `overrides.json`
-/// line can fix a batch, an OVA, or a path with no title (issue 07).
+/// line can fix a batch, an OVA, or a path with no title.
 fn rejection_reason(rejected: release::Rejected) -> String {
     match rejected {
         release::Rejected::Unsupported(reason) => reason.to_owned(),

@@ -193,7 +193,7 @@ async fn close_refusal_is_reported_and_never_connects() {
 
 /// A SET_ACTIVITY rejected by Discord's client-side validation arrives as an
 /// ERROR frame on the live connection, not a closed pipe: it must reach the
-/// console, or an absent card has no explanation anywhere (issue 07).
+/// console, or an absent card has no explanation anywhere.
 #[tokio::test]
 async fn an_error_frame_reply_is_reported_to_the_console() {
     let listener = Listener::new("error");

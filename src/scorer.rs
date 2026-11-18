@@ -1,8 +1,8 @@
 //! Candidate scoring: trust-but-verify selection over AniList search results.
 //!
-//! Scoring mirrors the measured configuration in
-//! `.scratch/surtr/research/match-quality.md`: an exact normalized title match
-//! scores 1.0, token containment 0.85, fuzzy similarity below that, plus small
+//! Scoring mirrors the measured configuration pinned by `tests/scorer.rs`:
+//! an exact normalized title match scores 1.0, token containment 0.85, fuzzy
+//! similarity below that, plus small
 //! format and release-year bonuses. A Match is accepted only when the best
 //! score clears 0.85 and beats the runner-up by at least 0.10. Identical best
 //! scores are never broken arbitrarily, with one measured exception: for a

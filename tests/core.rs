@@ -1223,7 +1223,7 @@ async fn reconnect_republishes_from_live_state_without_a_lookup() {
 }
 
 // ---------------------------------------------------------------------------
-// Match-miss diagnostics: console and OSD (issue 07)
+// Match-miss diagnostics: console and OSD
 // ---------------------------------------------------------------------------
 
 #[tokio::test]

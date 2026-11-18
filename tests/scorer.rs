@@ -1,6 +1,6 @@
 //! Candidate scoring and acceptance tests: recorded AniList shapes in,
-//! accepted Matches (or None) out. The numbers mirror the measured config in
-//! `.scratch/surtr/research/match-quality.md`.
+//! accepted Matches (or None) out. The numbers are the measured config the
+//! scorer implements.
 
 use surtr::anilist::Candidate;
 use surtr::scorer::{self, Context};

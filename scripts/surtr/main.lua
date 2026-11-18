@@ -22,7 +22,7 @@ local function trim(text)
     return (text:gsub('^%s+', ''):gsub('%s+$', ''))
 end
 
--- The daemon's only route to the visible console (issue 07): it sends
+-- The daemon's only route to the visible console: it sends
 -- `script-message surtr-log <text>` over the IPC pipe and Lua re-emits it
 -- as a log error, which the console prefixes with `[surtr]`.
 mp.register_script_message('surtr-log', function(text)

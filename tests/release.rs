@@ -1,7 +1,7 @@
-//! Golden filename-parsing tests: all 49 rows of the corpus in
-//! `.scratch/surtr/research/filename-corpus.md`, plus the Anime Root gate.
+//! Golden filename-parsing tests: all 49 rows of the match corpus
+//! (`tests/corpus.rs`), plus the Anime Root gate.
 //!
-//! The corpus' expected AniList entry is issue 03's target; here the contract
+//! The corpus' expected AniList entry is what the matcher must land on; here
 //! is the *query* the parser builds — the cleaned title, the season marker and
 //! the Parsed Episode — and the files that must yield no Presence at all.
 

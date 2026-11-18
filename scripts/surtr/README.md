@@ -145,7 +145,7 @@ are named there.
   plugin never loaded from `scripts/surtr/`; run the install command again and
   restart mpv. If even normal mpv output is missing, mpv is running with quiet
   logging.
-- **`No card at all, no `[surtr]` line` after that startup line, or a line
+- **No card at all, and no `[surtr]` line after that startup line, or a line
   about Discord not accepting a connection.** Check that Discord is running
   and signed in, and its **Share your detected activities with others**
   setting. Restart Discord and mpv after changing the setting. Make sure the

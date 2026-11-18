@@ -57,7 +57,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 - Lifetime binding: the Daemon exits cleanly when the mpv IPC pipe breaks or the parent mpv process terminates. There is no background lingering and no orphan daemon process.
 
 ### Configuration and Discovery
-- Configuration lives in mpv's standard `script-opts/surtr.conf`, holding `anime_roots`, optional `binary_path`, and `toggle_key`.
+- Configuration lives in mpv's standard `script-opts/surtr.conf`, holding `anime_roots`, `client_id`, optional `binary_path`, `details_title_lang`, and `toggle_key`.
 - `anime_roots` is a semicolon-separated list of absolute Windows folder paths. Each path is canonicalized and compared case-insensitively per component to guard against prefix bleed (e.g. `D:\Anime2` will never match root `D:\Anime`).
 - Binary discovery defaults to `surtr.exe` situated directly alongside `main.lua` in the script directory. An optional `binary_path` override in `surtr.conf` is expanded via mpv's `expand-path` command to support portable meta-paths (`~~/`, `~~exe_dir/`). Relative paths and working directory lookups are disallowed.
 - If mpv lacks `user-data` property support (mpv < 0.36) or the Daemon executable cannot be located, Lua emits a single diagnostic error to the console and halts without binding shortcuts.
@@ -111,7 +111,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 - Manual overrides live in `%LOCALAPPDATA%\surtr\overrides.json`, mapping normalized cleaned query strings (e.g., `"honzuki no gekokujou"` or `"youjo senki season 2"`) to integer AniList IDs.
 - Overrides short-circuit search completely: when a match exists in `overrides.json`, external search is bypassed, and metadata is fetched directly by ID.
 - Overrides are parsed once at Daemon startup; modifications require restarting mpv.
-- If an anime file within an Anime Root cannot be matched automatically and has a known total episode count, the Daemon surfaces a 5-second mpv OSD notification: `Surtr: no Anime match for "<key>"`, printing the exact string required for `overrides.json`.
+- If an anime file within an Anime Root cannot be matched automatically, the Daemon surfaces a 5-second mpv OSD notification: `Surtr: no Anime match for "<key>"`, printing the exact string required for `overrides.json`. A repairable miss earns the OSD and a console line; a fatal miss stays console-only, and a failed request reports nothing.
 - Daemon diagnostics reach mpv's console by sending an IPC script message (`script-message surtr-log <text>`), which the Lua script intercepts and prints via `mp.msg.error` with a `[surtr]` prefix.
 
 ### Local Disk Cache
@@ -144,7 +144,7 @@ Testing centers entirely on one high-level architectural seam: the **Daemon Core
   - Overrides file key normalization, search short-circuiting, and invalid JSON error reporting.
 
 ### Prior Art
-- Pre-recorded offline fixtures and scoring test harnesses developed during early research (`docs/research/match-quality/`).
+- Pre-recorded offline fixtures and scoring test harnesses developed during early research (now `tests/fixtures/` and the scorer and corpus test suites).
 - Standard deterministic state-machine and adapter testing patterns commonly utilized for protocol clients and event-driven daemons.
 
 ## Out of Scope
@@ -171,4 +171,4 @@ Testing centers entirely on one high-level architectural seam: the **Daemon Core
   └── script-opts/surtr.conf
   ```
   `scripts/install.ps1` (published beside it on each release) asks whether to install/update or uninstall, asks which detected mpv configuration folders (`%APPDATA%\mpv`, `portable_config`, …) to work on, and uses a `surtr.zip` beside it when present, otherwise downloads the archive. A console that cannot read keys gets the same choices as a numbered prompt.
-- The README contains eight explicit user-facing sections: Overview, Install, Configure, Verify, Troubleshooting, Updating/Uninstalling, Known Limits, and Overrides.
+- The README contains eight explicit user-facing sections: What it is, Install, Configure, Verify, Troubleshooting, Updating/Uninstalling, Known Limits, and Overrides.

@@ -8,7 +8,7 @@ The alternative - merging the shipped conf into the user's in place - cannot ref
 
 - The Installer, not mpv, decides which mpv Configuration Folders Surtr lives in; a machine with several offers them for ticking, and no folder found is a prompt for a path, never a guess. Opening the script offers install/update or uninstall; without a console that can read keys, the same choices become numbered prompts.
 - Deleting a key from the shipped `surtr.conf` is a breaking change to every user's file: their value for it disappears on the next update. Bump deliberately.
-- Plugins files are replaced unconditionally, so there is no version check anywhere and no release tag to read; `releases/latest/download/` is the whole update mechanism.
+- Plugin files are replaced unconditionally, so there is no version check anywhere and no release tag to read; `releases/latest/download/` is the whole update mechanism.
 - A locked `surtr.exe` (mpv running) prompts the user to close mpv and retry rather than being killed, so a running session is never silently broken.
 - `scripts/install.ps1` and `surtr.zip` must be published together on each release, or the one-liner installs a version whose conf does not match its template.
 - Nothing outside mpv's configuration folder and `%LOCALAPPDATA%\surtr` is written; `overrides.json`, `cache.json` and `owner.json` are never touched. Uninstall asks before deleting that data folder, and Enter keeps it: losing Overrides by accident is worse than leaving a cache behind.

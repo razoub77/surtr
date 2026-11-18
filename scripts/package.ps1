@@ -3,7 +3,7 @@
     Builds surtr.zip: the mpv config tree a stranger extracts and merges.
 
 .DESCRIPTION
-    The archive is exactly the install layout (issue 05):
+    The archive is exactly the install layout:
 
         scripts/surtr/main.lua
         scripts/surtr/surtr.exe
@@ -11,8 +11,9 @@
         script-opts/surtr.conf
 
     surtr.exe is the release build of this repo and carries no console window
-    (Cargo.toml sets the windows subsystem for release): a detached daemon
-    must not flash a console behind mpv.
+    (the #![windows_subsystem = "windows"] attribute in src/main.rs makes it
+    a GUI-subsystem binary): a detached daemon must not flash a console
+    behind mpv.
 
 .EXAMPLE
     powershell -File scripts/package.ps1

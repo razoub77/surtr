@@ -4,8 +4,8 @@
 //! and the recorded `SEQUEL` chains (`fixtures/anilist-relations.json`), plus
 //! row 50 — row 20's file under a folder that spells the title as AniList does.
 //!
-//! Expectations come from the measured pipeline in
-//! `.scratch/surtr/research/match-quality.md` (agreed scorer, margin ≥ 0.10):
+//! Expectations follow the agreed scorer (margin ≥ 0.10), pinned by
+//! `tests/scorer.rs`:
 //! 46 rows accept their expected entry, rows 4/20 yield no Match. Row 28's
 //! five tie seasons fall to the Root Season (the one tied Candidate with no
 //! season ordinal). Rows
@@ -450,8 +450,8 @@ fn golden_corpus_matches_the_recorded_entries() {
     );
 }
 
-/// The ticket's headline case: absolute 50 crosses two 24-episode seasons and
-/// lands on Season 3 episode 2 of 12.
+/// The headline absolute-remap case: absolute 50 crosses two 24-episode
+/// seasons and lands on Season 3 episode 2 of 12.
 #[test]
 fn kusuriya_absolute_50_remaps_to_season_3_episode_2_of_12() {
     let mut source = FixtureSource::recorded();

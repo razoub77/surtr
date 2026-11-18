@@ -973,7 +973,7 @@ fn a_dead_folder_query_still_reports_the_files_own_title() {
 }
 
 // ---------------------------------------------------------------------------
-// Miss reports: why a lookup found no Match (issue 07)
+// Miss reports: why a lookup found no Match
 // ---------------------------------------------------------------------------
 
 /// Looks a path up and returns why it missed, when the answer is a Miss.
@@ -1019,7 +1019,7 @@ fn an_uncorroborated_season_marker_miss_names_the_seasoned_key() {
 #[test]
 fn an_ambiguous_absolute_branch_is_a_repairable_miss() {
     // No unique containing season: one override naming a sequel could still
-    // produce a card (issue 07).
+    // produce a card.
     let mut source = FixtureSource::new(&[("Show", vec![tv(1, "Show", Some(12))])]).with_sequels(&[(
         1,
         vec![tv(2, "Show 2nd Season", Some(12)), tv(3, "Show Another Season", Some(12))],

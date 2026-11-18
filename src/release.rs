@@ -2,8 +2,8 @@
 //! query, a season marker and a Parsed Episode — or a clean rejection.
 //!
 //! Pure functions only: no filesystem, no network. The Daemon Core asks twice
-//! per loaded file (the Anime Root gate, then the parser), and issue 03 feeds
-//! the resulting query to AniList. The same season-marker grammar is exposed
+//! per loaded file (the Anime Root gate, then the parser), and the matcher
+//! feeds the resulting query to AniList. The same season-marker grammar is exposed
 //! as [`title_season`] so a Match's titles can corroborate the marker.
 //!
 //! The path is reduced to words: caseless, accents folded, `_`, `-` and `.`
@@ -20,8 +20,8 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedRelease {
     /// Clean title, without season marker or year. For a season above 1 it
-    /// ends in `season N` (`youjo senki season 2`): the form issue 03 appends
-    /// and `overrides.json` keys use.
+    /// ends in `season N` (`youjo senki season 2`): the form the matcher
+    /// appends and `overrides.json` keys use.
     pub title: String,
     /// Season marker from the filename, else the immediate parent folder.
     /// `None` means unmarked, which matching treats as season 1.
@@ -54,7 +54,7 @@ pub enum Rejected {
     /// Neither the basename nor the parent folder carries a title.
     NoTitle,
     /// An absolute-numbered file tagged `[12]` with no season marker: which
-    /// season the number belongs to is season resolution (issue 03).
+    /// season the number belongs to is season resolution.
     UnresolvedEpisode,
     /// Batch range, multi-episode file, OVA, or an unbalanced tag.
     Unsupported(&'static str),
