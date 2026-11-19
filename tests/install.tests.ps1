@@ -109,6 +109,41 @@ Check 'LF-ended existing conf merges the same way' (
     ($lfLines -contains 'anime_roots=E:\Anime;F:\More') -and
     ($lfLines -contains 'toggle_key=F8'))
 
+# --- override file creation --------------------------------------------------
+$overrideStage = Join-Path ([IO.Path]::GetTempPath()) ("surtr-override-test-" + [guid]::NewGuid())
+try {
+    New-Item -ItemType Directory -Force -Path $overrideStage | Out-Null
+    $target = Join-Path $overrideStage 'surtr-overrides.json'
+    $old = Join-Path $overrideStage 'old-overrides.json'
+
+    Check 'no override file anywhere: the default file is created' (
+        (New-SurtrOverridesFile -ConfDir $overrideStage -ExistingConf '' -LegacyOverridesPath $old) -and
+        (Test-Path -LiteralPath $target) -and
+        ((Get-Content -LiteralPath $target -Raw) -eq "{}`r`n"))
+
+    Set-Content -LiteralPath $target -Value '{"anime a": 1}' -Encoding ASCII
+    Check 'an existing surtr-overrides.json is never overwritten' (
+        -not (New-SurtrOverridesFile -ConfDir $overrideStage -ExistingConf '' -LegacyOverridesPath $old) -and
+        ((Get-Content -LiteralPath $target -Raw).Contains('anime a')))
+
+    Remove-Item -LiteralPath $target
+    Set-Content -LiteralPath $old -Value '{"anime b": 2}' -Encoding ASCII
+    Check 'an old overrides.json leaves the move to the daemon' (
+        -not (New-SurtrOverridesFile -ConfDir $overrideStage -ExistingConf '' -LegacyOverridesPath $old) -and
+        -not (Test-Path -LiteralPath $target))
+
+    $custom = "overrides_path=D:\Config\mine.json"
+    Check 'a custom overrides_path creates no default file' (
+        -not (New-SurtrOverridesFile -ConfDir $overrideStage -ExistingConf $custom -LegacyOverridesPath '') -and
+        -not (Test-Path -LiteralPath $target))
+
+    $explicitDefault = "overrides_path=$($script:DefaultOverridesPath)"
+    Check 'the explicit default overrides_path still creates the file' (
+        (New-SurtrOverridesFile -ConfDir $overrideStage -ExistingConf $explicitDefault -LegacyOverridesPath '') -and
+        (Test-Path -LiteralPath $target))
+}
+finally { Remove-Item -LiteralPath $overrideStage -Recurse -Force -ErrorAction SilentlyContinue }
+
 # --- package layout ----------------------------------------------------------
 # A surtr.zip is trusted only if the install layout is inside it; a downloaded
 # error page, or a truncated archive, must be reported by relative path.

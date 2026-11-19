@@ -21,7 +21,7 @@ surtr — anime Discord Rich Presence daemon for mpv
 
 USAGE:
     surtr --mpv-pipe <pipe> [--dry-run] [--client-id <id>] [--anime-roots <roots>]
-         [--details-title-lang <lang>]
+         [--details-title-lang <lang>] [--overrides <path>]
 
 OPTIONS:
     --mpv-pipe <pipe>    mpv JSON IPC pipe name, e.g. \\\\.\\pipe\\surtr-1234
@@ -35,6 +35,8 @@ OPTIONS:
     --details-title-lang <lang>
                          title language of the card's main line: english or
                          romaji (default english; the other stands in)
+    --overrides <path>   override file path (the launcher expands
+                         script-opts/surtr-overrides.json by default)
 ";
 
 struct Args {
@@ -43,6 +45,7 @@ struct Args {
     client_id: Option<String>,
     anime_roots: Option<String>,
     details_title_lang: Option<String>,
+    overrides: Option<std::path::PathBuf>,
 }
 
 impl Args {
@@ -83,6 +86,7 @@ fn parse_args() -> Option<Args> {
         client_id: None,
         anime_roots: None,
         details_title_lang: None,
+        overrides: None,
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -91,6 +95,7 @@ fn parse_args() -> Option<Args> {
             "--client-id" => parsed.client_id = args.next(),
             "--anime-roots" => parsed.anime_roots = args.next(),
             "--details-title-lang" => parsed.details_title_lang = args.next(),
+            "--overrides" => parsed.overrides = args.next().map(std::path::PathBuf::from),
             "--help" | "-h" => {
                 report_usage(USAGE);
                 return None;
@@ -138,13 +143,13 @@ async fn main() {
     let session =
         tokio::spawn(async move { mpv::run_session(&pipe, events_tx, mpv_rx, samples_rx).await });
 
-    // `overrides.json` and `cache.json` are read once, at startup: editing
+    // The override file and `cache.json` are read once, at startup: editing
     // either means restarting mpv. Diagnostics go through the same route to
     // mpv as the core's, buffered until the session connects.
-    let (overrides, override_messages) = match paths::overrides_file() {
-        Some(path) => Overrides::load(&path),
-        None => (Overrides::none(), Vec::new()),
-    };
+    let (overrides, override_messages) = Overrides::load_with_migration(
+        args.overrides.as_deref(),
+        paths::legacy_overrides_file().as_deref(),
+    );
     for text in override_messages {
         let _ = mpv_tx.send(mpv::Outbound::Log(text));
     }

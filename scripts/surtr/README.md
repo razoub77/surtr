@@ -48,6 +48,7 @@ scripts/surtr/main.lua
 scripts/surtr/surtr.exe
 scripts/surtr/README.md        (this file)
 script-opts/surtr.conf         (created on first install, synced on update)
+script-opts/surtr-overrides.json (created empty when you have no override file)
 ```
 
 Do not rename or move the files out of `scripts/surtr`, and do not put this
@@ -95,6 +96,10 @@ The other keys:
 
 - `binary_path` stays empty: it means `surtr.exe` next to `main.lua`. Set it
   only if you moved the executable; see [Troubleshooting](#5-troubleshooting).
+- `overrides_path` is `~~/script-opts/surtr-overrides.json`: the override file
+  beside this conf. Change it only if you keep that file elsewhere; the value
+  must be absolute or start with `~~` (mpv's config folder) or `~~exe_dir`
+  (mpv.exe's folder). See [Overrides](#8-overrides).
 - `toggle_key` is `ctrl+shift+a`: press it to hide or show presence in this mpv
   window. Any mpv key name works (`alt+p`, `F8`, ...). It is not saved across
   mpv restarts.
@@ -194,8 +199,10 @@ Close mpv first. The new plugin files replace the old ones, and
 `surtr.conf` is rewritten from the new version's shipped file: every value you
 set is kept, any key that no longer exists is dropped, any new key arrives at
 its default, and the comments always match the version you just installed. Your
-overrides and cache in `%LOCALAPPDATA%\surtr` are never touched. If mpv is still
-open, the installer asks you to close it and press Enter, then retries.
+`surtr-overrides.json` and cache are never overwritten. An old
+`%LOCALAPPDATA%\surtr\overrides.json` is moved or merged into the configured
+file by the daemon on the next mpv start. If mpv is still open, the installer
+asks you to close it and press Enter, then retries.
 
 **Uninstall.** Run the same command and choose **Uninstall** in the menu. To
 skip the menu, set `$env:SURTR_UNINSTALL = '1'` before the one-liner, or run
@@ -207,12 +214,13 @@ irm https://github.com/razoub77/surtr/releases/latest/download/install.ps1 | iex
 ```
 
 Tick the folders to clean with `Space`, press `Enter`, then choose whether to
-also delete `%LOCALAPPDATA%\surtr` (the cache, your overrides and the
-window-ownership file). Pressing `Enter` keeps it; choose **Delete** to remove
-it. The uninstall removes `scripts/surtr` (the plugin and its executable) and
-`script-opts/surtr.conf` from the ticked folders. Or delete those files by hand
-- that is all Surtr ever installed. Nothing else is installed: no service, no
-registry entries, no scheduled task. Discord forgets the card when mpv exits.
+also delete `%LOCALAPPDATA%\surtr` (the cache and the window-ownership file).
+Pressing `Enter` keeps it; choose **Delete** to remove it. The uninstall removes
+`scripts/surtr` (the plugin and its executable) and `script-opts/surtr.conf`
+from the ticked folders. `script-opts/surtr-overrides.json` is yours, so it is
+left in place; delete it by hand if you no longer want it. Nothing else is
+installed: no service, no registry entries, no scheduled task. Discord forgets
+the card when mpv exits.
 
 ## 7. Known Limits
 
@@ -237,7 +245,7 @@ registry entries, no scheduled task. Discord forgets the card when mpv exits.
   another mpv window hands the card over; a browser or other app does not take
   it away.
 - **Configuration is read at startup.** Editing `surtr.conf` or
-  `overrides.json` takes effect after restarting mpv.
+  `surtr-overrides.json` takes effect after restarting mpv.
 - **Network hiccups are silent.** If AniList, Discord or the network is
   unavailable, the card simply does not update; playback is never affected.
 - **mpv 0.36 or newer, Windows 11 64-bit only.**
@@ -250,8 +258,9 @@ in mpv's console. The text in quotes is the override key: the exact query Surtr
 searched, for example `honzuki no gekokujou` or `youjo senki season 2`.
 
 Decide which AniList entry the file belongs to — its id is the number in the
-URL, `https://anilist.co/anime/108268` — then edit `%LOCALAPPDATA%\surtr\overrides.json`
-(create the file if it does not exist):
+URL, `https://anilist.co/anime/108268` — then edit
+`script-opts/surtr-overrides.json` (create the file if it does not exist). A
+different `overrides_path` in `surtr.conf` points somewhere else:
 
 ```json
 {
@@ -268,4 +277,7 @@ URL, `https://anilist.co/anime/108268` — then edit `%LOCALAPPDATA%\surtr\overr
   one `[surtr]` console line says so.
 - The rest of the file still works if one line is malformed; a malformed file as
   a whole is ignored with one console line.
-- Restart mpv after editing. The file is never created or rewritten by Surtr.
+- Restart mpv after editing. The installer creates the file empty when you have
+  none. An old `%LOCALAPPDATA%\surtr\overrides.json` is moved into it on the next
+  mpv start, or merged with it when both exist; the current file wins a
+  conflicting id. After that migration, Surtr leaves the file alone.

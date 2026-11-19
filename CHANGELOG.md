@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Manual Overrides moved from `%LOCALAPPDATA%\surtr\overrides.json` to
+  `script-opts/surtr-overrides.json`, beside `surtr.conf`. `overrides_path` in
+  the conf points at a different file; the default is the file beside the conf.
+  On first start the old file is copied to the configured path, or merged when
+  both exist, and then removed. A failed move or invalid data keeps the old file.
+
 ## [0.2.0] — 2026-11-17
 
 ### Added

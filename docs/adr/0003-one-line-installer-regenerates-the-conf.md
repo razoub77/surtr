@@ -11,7 +11,7 @@ The alternative - merging the shipped conf into the user's in place - cannot ref
 - Plugin files are replaced unconditionally, so there is no version check anywhere and no release tag to read; `releases/latest/download/` is the whole update mechanism.
 - A locked `surtr.exe` (mpv running) prompts the user to close mpv and retry rather than being killed, so a running session is never silently broken.
 - `scripts/install.ps1` and `surtr.zip` must be published together on each release, or the one-liner installs a version whose conf does not match its template.
-- Nothing outside mpv's configuration folder and `%LOCALAPPDATA%\surtr` is written; `overrides.json`, `cache.json` and `owner.json` are never touched. Uninstall asks before deleting that data folder, and Enter keeps it: losing Overrides by accident is worse than leaving a cache behind.
+- The installer writes nothing outside mpv's configuration folder and `%LOCALAPPDATA%\surtr`. An existing override file is never overwritten; an empty `script-opts/surtr-overrides.json` is created only when the user has no override file in either place. `cache.json` and `owner.json` are never touched unasked. Uninstall asks before deleting that data folder, and Enter keeps it; it leaves the user's override file in `script-opts` alone. ADR 0004 moved Overrides out of the data folder; an explicit user `overrides_path` can point the daemon's one-time migration outside those two folders, which is the deliberate exception to this boundary.
 - Offline install works when the two release files are in one folder: a `surtr.zip` beside the script wins over the network. A bad local zip hard-fails, naming the missing files; no silent fallback to a download, because that would break the offline promise.
 
 ## Considered options

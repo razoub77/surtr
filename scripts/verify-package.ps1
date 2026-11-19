@@ -10,11 +10,13 @@
       * exactly the four install-layout files are present: three in
         scripts/surtr and script-opts/surtr.conf;
       * surtr.conf ships commented, with anime_roots=, binary_path=,
-        client_id=, details_title_lang= and toggle_key=ctrl+shift+a;
+        overrides_path=~~/script-opts/surtr-overrides.json, client_id=,
+        details_title_lang= and toggle_key=ctrl+shift+a;
       * README.md has exactly the eight sections, in order;
       * main.lua resolves the binary beside itself by default, expands
-        binary_path through mpv's expand-path, refuses a relative override,
-        and spawns nothing when the binary is missing;
+        binary_path through mpv's expand-path, forwards the default override
+        file beside the conf, refuses a relative path, and spawns nothing when
+        the binary is missing;
       * the daemon binary links the Windows GUI subsystem (a detached daemon
         must never open a console behind mpv).
 
@@ -86,10 +88,11 @@ try {
     }
     Check 'anime_roots= ships blank' ($keys.ContainsKey('anime_roots') -and $keys['anime_roots'] -eq '')
     Check 'binary_path= ships blank' ($keys.ContainsKey('binary_path') -and $keys['binary_path'] -eq '')
+    Check 'overrides_path= ships beside the conf' ($keys.ContainsKey('overrides_path') -and $keys['overrides_path'] -eq '~~/script-opts/surtr-overrides.json')
     Check 'toggle_key=ctrl+shift+a' ($keys.ContainsKey('toggle_key') -and $keys['toggle_key'] -eq 'ctrl+shift+a')
     Check 'client_id= ships blank' ($keys.ContainsKey('client_id') -and $keys['client_id'] -eq '')
     Check 'details_title_lang= ships blank' ($keys.ContainsKey('details_title_lang') -and $keys['details_title_lang'] -eq '')
-    Check 'only those five keys are active' ($keys.Count -eq 5) ("found: " + ($keys.Keys -join ', '))
+    Check 'only those six keys are active' ($keys.Count -eq 6) ("found: " + ($keys.Keys -join ', '))
     Check 'the file is commented (explains anime_roots)' ($conf -match '(?m)^#.*anime_roots')
 
     # 4. The README has exactly the eight sections, in order. Comparison drops
@@ -157,6 +160,7 @@ local script_dir, conf = inputs.dir, inputs.conf
 local user_data = inputs.userdata == '1'
 local existing = inputs.existing
 local absolute = inputs.absolute
+local config = inputs.config
 local function norm(path)
     if not path then return nil end
     return (path:lower():gsub('\\', '/'))
@@ -189,7 +193,7 @@ local utils = {
         if not missing and same_path(path, existing) then return { is_dir = false } end
     end,
     subprocess_detached = function(args)
-        note('spawn', args.args[1], args.args[2], args.args[3] or '', args.args[4] or '', args.args[5] or '')
+        note('spawn', table.concat(args.args, ' '))
     end,
 }
 -- Real mpv's `mp` table has no `utils` field: the module is only reachable
@@ -209,6 +213,16 @@ function m.set_property_bool() end
 function m.osd_message() end
 function m.add_key_binding(key) note('bind', key) end
 function m.command_native(cmd)
+    if cmd[1] == 'expand-path' then
+        if cmd[2] == '~~/script-opts/surtr-overrides.json' then
+            -- The override default is not part of the binary_path assertions.
+            return config .. '/script-opts/surtr-overrides.json'
+        end
+        if cmd[2]:match('^%a:[/\\]') or cmd[2]:match('^[\\/][\\/]') then
+            -- mpv returns an absolute expand-path argument unchanged.
+            return cmd[2]
+        end
+    end
     note('expand-path', cmd[2])
     -- The exe named by binary_path, as mpv's expand-path would return it.
     return inputs.absolute
@@ -244,7 +258,7 @@ out:close()
                 $ud = if ($options.ContainsKey('user_data') -and $options['user_data']) { '1' } else { '0' }
                 $ex = if ($options.ContainsKey('existing')) { $options['existing'] } else { $exe }
                 $miss = if ($options.ContainsKey('missing') -and $options['missing']) { '1' } else { '0' }
-                $lines = @("dir=$sd", "conf=$cf", "userdata=$ud", "existing=$ex", "missing=$miss", "absolute=$abs", "log=$results")
+                $lines = @("dir=$sd", "conf=$cf", "config=$config", "userdata=$ud", "existing=$ex", "missing=$miss", "absolute=$abs", "log=$results")
                 [IO.File]::WriteAllLines($inputs, $lines, [Text.Encoding]::ASCII)
                 if (Test-Path -LiteralPath $results) { Remove-Item -LiteralPath $results -Force }
                 & $luaExe $harness $inputs | Out-Null
@@ -272,6 +286,10 @@ out:close()
             Check 'default: no expand-path call, no error' (
                 @($log | Where-Object { $expandAny.IsMatch($_) -or $errorAny.IsMatch($_) }).Length -eq 0) (
                 "log: " + ($log -join ' / '))
+            $wantOverrides = ConvertTo-PathKey (Join-Path $config 'script-opts\surtr-overrides.json')
+            Check 'default: forwards the override file beside surtr.conf' (
+                $spawn.Length -eq 1 -and
+                (ConvertTo-PathKey $spawn[0]).Contains($wantOverrides)) ("log: " + ($log -join ' / '))
 
             # Empty anime_roots: one startup notice naming the conf, but the
             # daemon still spawns and the Toggle still binds.
@@ -331,6 +349,23 @@ out:close()
             Check 'relative binary_path: one error, no spawn' (
                 @($log | Where-Object { $_ -like 'error *not absolute*' }).Length -eq 1 -and
                 @($log | Where-Object { $spawnAny.IsMatch($_) }).Length -eq 0) ("log: " + ($log -join ' / '))
+
+            # overrides_path: the default sits beside the conf, any absolute
+            # target is forwarded, and a relative target is refused.
+            $log = Invoke-Launcher 'custom overrides_path' @{
+                user_data = $true
+                conf = (New-Conf "overrides_path=D:\Config\mine.json")
+            }
+            Check 'absolute overrides_path is forwarded verbatim' (
+                @($log | Where-Object { $spawnAny.IsMatch($_) -and $_.Contains('D:\Config\mine.json') }).Length -eq 1) ("log: " + ($log -join ' / '))
+            $log = Invoke-Launcher 'relative overrides_path' @{
+                user_data = $true
+                conf = (New-Conf "overrides_path=overrides\mine.json")
+            }
+            Check 'relative overrides_path: one error, no overrides argument' (
+                @($log | Where-Object { $_ -like 'error *overrides_path*not absolute*' }).Length -eq 1 -and
+                @($log | Where-Object { $spawnAny.IsMatch($_) }).Length -eq 1 -and
+                @($log | Where-Object { $spawnAny.IsMatch($_) -and $_.Contains('--overrides') }).Length -eq 0) ("log: " + ($log -join ' / '))
 
             # The Toggle key from the conf is the one bound.
             $log = Invoke-Launcher 'toggle key' @{

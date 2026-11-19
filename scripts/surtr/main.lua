@@ -13,6 +13,7 @@ local o = {
     binary_path = '',
     toggle_key = 'ctrl+shift+a',
     details_title_lang = 'english',
+    overrides_path = '~~/script-opts/surtr-overrides.json',
 }
 options.read_options(o, 'surtr')
 
@@ -20,6 +21,13 @@ options.read_options(o, 'surtr')
 -- Lua 5.1 (mpv's interpreter) has no string.trim, so spell it out.
 local function trim(text)
     return (text:gsub('^%s+', ''):gsub('%s+$', ''))
+end
+
+-- mpv is routinely started with cwd `C:\Windows\System32`, so a relative path
+-- is refused for both the daemon and the override file.
+local function absolute_path(value)
+    return value:match('^%a:[/\\]') or value:match('^~~')
+        or value:match('^[\\/][\\/]')
 end
 
 -- The daemon's only route to the visible console: it sends
@@ -48,14 +56,11 @@ end
 
 -- Binary discovery: `binary_path` override expanded through expand-path
 -- (supports `~~/`, `~~exe_dir/`), else `surtr.exe` beside this script.
--- A relative `binary_path` is refused: mpv is routinely started with cwd
--- `C:\Windows\System32`, and `expand-path` would happily point there.
 local binary
 local why = ''
 if o.binary_path ~= '' then
     local override = trim(o.binary_path)
-    if not (override:match('^%a:[/\\]') or override:match('^~~')
-            or override:match('^[\\/][\\/]')) then
+    if not absolute_path(override) then
         msg.error('surtr: binary_path "' .. override .. '" is not absolute; it '
             .. 'must start with a drive letter or ~~ (script-opts/surtr.conf). '
             .. 'Surtr disabled.')
@@ -74,6 +79,27 @@ if not info or info.is_dir then
         .. '; Surtr disabled. Re-extract the zip, or set binary_path in '
         .. 'script-opts/surtr.conf.')
     return
+end
+
+-- Overrides sit beside surtr.conf by default. The path follows binary_path's
+-- rule: absolute, `~~/` or `~~exe_dir/`, never relative. A bad value disables
+-- Overrides only; the daemon still runs. Empty means the default.
+local overrides_arg
+local overrides_setting = trim(o.overrides_path)
+if overrides_setting == '' then
+    overrides_setting = '~~/script-opts/surtr-overrides.json'
+end
+if not absolute_path(overrides_setting) then
+    msg.error('surtr: overrides_path "' .. overrides_setting .. '" is not '
+        .. 'absolute; it must start with a drive letter or ~~ '
+        .. '(script-opts/surtr.conf). Overrides disabled.')
+else
+    overrides_arg = mp.command_native({ 'expand-path', overrides_setting })
+    if not overrides_arg or overrides_arg == '' then
+        msg.error('surtr: could not expand overrides_path "' .. overrides_setting
+            .. '" (script-opts/surtr.conf). Overrides disabled.')
+        overrides_arg = nil
+    end
 end
 
 -- mpv creates its IPC listener asynchronously and with
@@ -96,6 +122,10 @@ end
 if o.details_title_lang ~= '' then
     table.insert(args, '--details-title-lang')
     table.insert(args, o.details_title_lang)
+end
+if overrides_arg then
+    table.insert(args, '--overrides')
+    table.insert(args, overrides_arg)
 end
 
 -- The session Toggle: a privacy switch for this mpv window. The daemon

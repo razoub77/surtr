@@ -21,16 +21,19 @@
     Plugin files are overwritten and script-opts/surtr.conf is rewritten from
     the shipped template: surviving keys keep the user's value, keys that no
     longer exist are dropped, new keys arrive at their shipped defaults, and
-    comments always match the shipped file.
+    comments always match the shipped file. An empty
+    script-opts/surtr-overrides.json is created only when the user has no
+    override file there and no old one in %LOCALAPPDATA%\surtr; an existing
+    override file is never overwritten.
 
     Uninstall removes the plugin from the ticked folders and asks before
-    deleting %LOCALAPPDATA%\surtr (cache, overrides, ownership) - Enter keeps
-    it.
+    deleting %LOCALAPPDATA%\surtr (cache and ownership) - Enter keeps it. The
+    override file in script-opts is left alone.
 
     Nothing is written outside mpv's configuration folder and
-    %LOCALAPPDATA%\surtr. State files (cache.json, overrides.json, owner.json)
-    are never touched unasked. A locked surtr.exe (mpv running) is a prompt to
-    close mpv and press Enter, not a killed process.
+    %LOCALAPPDATA%\surtr. State files (cache.json, owner.json) are never
+    touched unasked. A locked surtr.exe (mpv running) is a prompt to close mpv
+    and press Enter, not a killed process.
 
     -SelfTest defines the functions and runs nothing: tests/install.tests.ps1
     dot-sources the script that way.
@@ -92,6 +95,37 @@ function Merge-SurtrConf {
     $text = ($out -join "`r`n")
     $text = $text.TrimEnd("`r", "`n")
     return ($text + "`r`n")
+}
+
+# The override-file path the shipped conf uses when the user has not moved it.
+$script:DefaultOverridesPath = '~~/script-opts/surtr-overrides.json'
+
+function Get-SurtrConfValue {
+    # The last value for one key, trimmed. Absent or blank returns ''.
+    param([string]$Existing, [string]$Key)
+    $found = ''
+    foreach ($line in ($Existing -split '\r?\n')) {
+        if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$' -and $Matches[1] -eq $Key) {
+            $found = $Matches[2].Trim()
+        }
+    }
+    return $found
+}
+
+function New-SurtrOverridesFile {
+    # Creates the default empty override file only when the user has none in
+    # either place. An old appdata file is left for the daemon to move; a
+    # custom overrides_path is the user's target, so the default stays absent.
+    param([string]$ConfDir, [string]$ExistingConf, [string]$LegacyOverridesPath)
+
+    $path = Join-Path $ConfDir 'surtr-overrides.json'
+    if (Test-Path -LiteralPath $path) { return $false }
+    if ($LegacyOverridesPath -and (Test-Path -LiteralPath $LegacyOverridesPath)) { return $false }
+    $configured = Get-SurtrConfValue -Existing $ExistingConf -Key 'overrides_path'
+    if ($configured -and $configured -ne $script:DefaultOverridesPath) { return $false }
+
+    [IO.File]::WriteAllText($path, "{}`r`n", (New-Object System.Text.UTF8Encoding($false)))
+    return $true
 }
 
 # --- console: colours, glyphs, one-key menus ---------------------------------
@@ -740,7 +774,8 @@ function Expand-SurtrSource {
 # --- install / uninstall ------------------------------------------------------
 
 function Set-SurtrPlugin {
-    # Plugin files replaced wholesale; the conf is synced, not replaced.
+    # Plugin files replaced wholesale; the conf is synced and the override file
+    # is created only when the user has none in either place.
     param([string]$Source, [string]$ConfigDir)
 
     $from = Join-Path $Source 'scripts\surtr'
@@ -760,6 +795,11 @@ function Set-SurtrPlugin {
     $template = [IO.File]::ReadAllText((Join-Path $Source 'script-opts\surtr.conf'))
     [IO.File]::WriteAllText($confPath, (Merge-SurtrConf -Template $template -Existing $existing),
         (New-Object System.Text.UTF8Encoding($false)))
+
+    $oldOverrides = if ($env:LOCALAPPDATA) {
+        Join-Path $env:LOCALAPPDATA 'surtr\overrides.json'
+    } else { '' }
+    [void](New-SurtrOverridesFile -ConfDir $confDir -ExistingConf $existing -LegacyOverridesPath $oldOverrides)
 }
 
 function Install-Surtr {
@@ -816,7 +856,7 @@ function Uninstall-Surtr {
     $data = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'surtr' } else { $null }
     if ($data -and (Test-Path -LiteralPath $data)) {
         Write-Host ''
-        $delete = Read-SurtrConfirm -Question "Also delete $data (cache, overrides, ownership)?" -Default $false
+        $delete = Read-SurtrConfirm -Question "Also delete $data (cache and ownership)?" -Default $false
         if ($delete) {
             Invoke-SurtrWithMpvRetry -What 'the Surtr data folder' -ArgumentList @($data) -Action {
                 param($folder)

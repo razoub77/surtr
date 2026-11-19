@@ -20,3 +20,5 @@ mpv's Lua API can spawn a process but cannot hold a channel to one: there are no
 
 ADR 0002 drops `time-pos` from the observed set: it is read on demand, only when a Presence update is about to be sent.
 
+ADR 0004 adds one launcher duty: `overrides_path` is validated and expanded with mpv's `expand-path`, because only mpv can resolve `~~` / `~~exe_dir`. The decision logic stays in Rust; Lua still only launches, forwards config and binds keys.
+

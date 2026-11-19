@@ -30,6 +30,9 @@ Point Surtr at your anime folders in `script-opts/surtr.conf`:
 anime_roots=D:\Anime;E:\Anime\Seasonal
 ```
 
+Manual Overrides go beside it in `script-opts/surtr-overrides.json`; the full
+guide explains the format and the optional `overrides_path` key.
+
 ## Requirements
 
 - Windows 11, 64-bit
