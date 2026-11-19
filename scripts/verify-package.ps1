@@ -11,7 +11,7 @@
         scripts/surtr and script-opts/surtr.conf;
       * surtr.conf ships commented, with anime_roots=, binary_path=,
         overrides_path=~~/script-opts/surtr-overrides.json, client_id=,
-        details_title_lang= and toggle_key=ctrl+shift+a;
+        details_title_lang=, pause_timeout=0 and toggle_key=ctrl+shift+a;
       * README.md has exactly the eight sections, in order;
       * main.lua resolves the binary beside itself by default, expands
         binary_path through mpv's expand-path, forwards the default override
@@ -92,7 +92,8 @@ try {
     Check 'toggle_key=ctrl+shift+a' ($keys.ContainsKey('toggle_key') -and $keys['toggle_key'] -eq 'ctrl+shift+a')
     Check 'client_id= ships blank' ($keys.ContainsKey('client_id') -and $keys['client_id'] -eq '')
     Check 'details_title_lang= ships blank' ($keys.ContainsKey('details_title_lang') -and $keys['details_title_lang'] -eq '')
-    Check 'only those six keys are active' ($keys.Count -eq 6) ("found: " + ($keys.Keys -join ', '))
+    Check 'pause_timeout=0 ships the timeout off' ($keys.ContainsKey('pause_timeout') -and $keys['pause_timeout'] -eq '0')
+    Check 'only those seven keys are active' ($keys.Count -eq 7) ("found: " + ($keys.Keys -join ', '))
     Check 'the file is commented (explains anime_roots)' ($conf -match '(?m)^#.*anime_roots')
 
     # 4. The README has exactly the eight sections, in order. Comparison drops
@@ -116,7 +117,7 @@ try {
     $text = Get-Content -LiteralPath $readme -Raw
     foreach ($needle in @('%APPDATA%\mpv', 'portable_config', 'scripts/surtr', 'script-opts/surtr.conf',
             '%LOCALAPPDATA%\surtr', 'overrides.json', 'ctrl+shift+a', 'binary_path',
-            'releases/latest/download/install.ps1')) {
+            'pause_timeout', 'releases/latest/download/install.ps1')) {
         Check "README names $needle" ($text.Contains($needle))
     }
 
@@ -311,6 +312,16 @@ out:close()
             Check 'anime_roots is forwarded as one argv entry' (
                 $rootsLine.Length -eq 1 -and
                 $rootsLine[0].Contains(' --anime-roots D:\Anime; E:\Anime2 ;')) ("log: " + ($log -join ' / '))
+
+            # pause_timeout goes to the daemon as seconds, verbatim.
+            $log = Invoke-Launcher 'pause timeout' @{
+                user_data = $true
+                conf = (New-Conf "pause_timeout=300")
+            }
+            $timeoutLine = @($log | Where-Object { $spawnAny.IsMatch($_) })
+            Check 'pause_timeout from the conf is forwarded to the daemon' (
+                $timeoutLine.Length -eq 1 -and
+                $timeoutLine[0].Contains(' --pause-timeout 300')) ("log: " + ($log -join ' / '))
 
             # Missing binary: one error naming the path, no spawn, no Toggle.
             $log = Invoke-Launcher 'missing exe' @{ user_data = $true; missing = $true }

@@ -495,7 +495,7 @@ async fn a_paused_movie_gets_a_paused_state() {
 }
 
 #[tokio::test]
-async fn a_long_pause_never_times_out() {
+async fn a_long_pause_never_times_out_by_default() {
     let mut script =
         Script::scripted([Lookup::Matched(episode("Frieren", "Episode 5 of 12"))]);
     let mut host = Host::new(true);
@@ -508,7 +508,7 @@ async fn a_long_pause_never_times_out() {
     host.trigger(&mut runner, MpvEvent::Property(Property::Pause(true)))
         .await;
 
-    // An hour later the paused card is still there; no idle timer exists.
+    // An hour later the paused card is still there; the timeout defaults off.
     host.advance(3_600_000);
     host.timer(&mut runner).await;
 
@@ -517,6 +517,79 @@ async fn a_long_pause_never_times_out() {
         host.last_publish().state.as_deref(),
         Some("\u{23F8}\u{FE0F} Paused • Episode 5 of 12")
     );
+}
+
+#[tokio::test]
+async fn pause_timeout_clears_and_latches_until_resume() {
+    let mut script = Script::scripted([matched()]);
+    let mut host = Host::new(true);
+    let policy = Policy {
+        pause_timeout_ms: 5_000,
+        ..policy()
+    };
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy, Vec::new());
+    let file = r"D:\Anime\Frieren - 05.mkv";
+    host.observed = live(file, 120.0, 1440.0);
+    host.load_as_observed(&mut runner, file, 120.0).await;
+
+    host.observed.paused = true;
+    host.trigger(&mut runner, MpvEvent::Property(Property::Pause(true)))
+        .await;
+    host.advance(4_999);
+    host.timer(&mut runner).await;
+    assert_eq!(host.clears(), 0);
+
+    // A seek while paused republishes, but must not arm a fresh deadline.
+    host.trigger(&mut runner, MpvEvent::PlaybackRestart).await;
+    host.advance(1);
+    host.timer(&mut runner).await;
+    assert_eq!(host.clears(), 1);
+    let published_at_expiry = host.publishes().len();
+
+    // Later events while still paused cannot bring the card back.
+    host.trigger(&mut runner, MpvEvent::PlaybackRestart).await;
+    assert_eq!(host.publishes().len(), published_at_expiry);
+
+    // Resuming republishes.
+    host.observed.paused = false;
+    host.trigger(&mut runner, MpvEvent::Property(Property::Pause(false)))
+        .await;
+    assert_eq!(host.publishes().len(), published_at_expiry + 1);
+}
+
+#[tokio::test]
+async fn a_new_file_resets_the_pause_timeout_latch() {
+    let mut script = Script::scripted([matched(), matched()]);
+    let mut host = Host::new(true);
+    let policy = Policy {
+        pause_timeout_ms: 5_000,
+        ..policy()
+    };
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy, Vec::new());
+    let first = r"D:\Anime\Frieren - 05.mkv";
+    host.observed = live(first, 120.0, 1440.0);
+    host.load_as_observed(&mut runner, first, 120.0).await;
+    host.observed.paused = true;
+    host.trigger(&mut runner, MpvEvent::Property(Property::Pause(true)))
+        .await;
+    host.advance(5_000);
+    host.timer(&mut runner).await;
+    assert_eq!(host.clears(), 1);
+
+    // The next file's first frame is paused too, yet gets a fresh card.
+    let second = r"D:\Anime\Frieren - 06.mkv";
+    let before = host.publishes().len();
+    host.play(second, 0.0, Some(1440.0));
+    let live = host.observed.clone();
+    host.run(
+        &mut runner,
+        MpvEvent::FileLoaded {
+            path: second.to_owned(),
+            live,
+        },
+    )
+    .await;
+    assert!(host.publishes().len() > before);
 }
 
 // ---------------------------------------------------------------------------

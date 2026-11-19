@@ -14,6 +14,7 @@ local o = {
     toggle_key = 'ctrl+shift+a',
     details_title_lang = 'english',
     overrides_path = '~~/script-opts/surtr-overrides.json',
+    pause_timeout = '0',
 }
 options.read_options(o, 'surtr')
 
@@ -126,6 +127,10 @@ end
 if overrides_arg then
     table.insert(args, '--overrides')
     table.insert(args, overrides_arg)
+end
+if o.pause_timeout ~= '' then
+    table.insert(args, '--pause-timeout')
+    table.insert(args, o.pause_timeout)
 end
 
 -- The session Toggle: a privacy switch for this mpv window. The daemon

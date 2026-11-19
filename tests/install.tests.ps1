@@ -38,6 +38,7 @@ $template = @(
     '# details_title_lang: english or romaji.',
     'details_title_lang=',
     'binary_path=',
+    'pause_timeout=0',
     'toggle_key=ctrl+shift+a'
 ) -join "`r`n"
 
@@ -67,7 +68,8 @@ Check 'surviving keys keep the user value verbatim' (
     ($lines -contains 'toggle_key=alt+p'))
 
 Check 'keys new to this version arrive at their shipped default' (
-    ($lines -contains 'details_title_lang='))
+    ($lines -contains 'details_title_lang=') -and
+    ($lines -contains 'pause_timeout=0'))
 
 # Shape, not text: a line's key (or its whole comment) must match the template
 # at the same position, but the values are the user's by design.

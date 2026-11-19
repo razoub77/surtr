@@ -22,6 +22,7 @@ surtr — anime Discord Rich Presence daemon for mpv
 USAGE:
     surtr --mpv-pipe <pipe> [--dry-run] [--client-id <id>] [--anime-roots <roots>]
          [--details-title-lang <lang>] [--overrides <path>]
+         [--pause-timeout <seconds>]
 
 OPTIONS:
     --mpv-pipe <pipe>    mpv JSON IPC pipe name, e.g. \\\\.\\pipe\\surtr-1234
@@ -37,6 +38,9 @@ OPTIONS:
                          romaji (default english; the other stands in)
     --overrides <path>   override file path (the launcher expands
                          script-opts/surtr-overrides.json by default)
+    --pause-timeout <seconds>
+                         clear Presence after this much continuous pause;
+                         whole seconds, 0 (default) disables
 ";
 
 struct Args {
@@ -46,6 +50,7 @@ struct Args {
     anime_roots: Option<String>,
     details_title_lang: Option<String>,
     overrides: Option<std::path::PathBuf>,
+    pause_timeout: Option<String>,
 }
 
 impl Args {
@@ -87,6 +92,7 @@ fn parse_args() -> Option<Args> {
         anime_roots: None,
         details_title_lang: None,
         overrides: None,
+        pause_timeout: None,
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -96,6 +102,7 @@ fn parse_args() -> Option<Args> {
             "--anime-roots" => parsed.anime_roots = args.next(),
             "--details-title-lang" => parsed.details_title_lang = args.next(),
             "--overrides" => parsed.overrides = args.next().map(std::path::PathBuf::from),
+            "--pause-timeout" => parsed.pause_timeout = args.next(),
             "--help" | "-h" => {
                 report_usage(USAGE);
                 return None;
@@ -153,6 +160,17 @@ async fn main() {
     for text in override_messages {
         let _ = mpv_tx.send(mpv::Outbound::Log(text));
     }
+    // A bad pause_timeout never stops the daemon: report it and run with the
+    // timeout off.
+    let pause_timeout_ms = match surtr::cli::pause_timeout_ms(args.pause_timeout.as_deref()) {
+        Ok(millis) => millis,
+        Err(()) => {
+            let _ = mpv_tx.send(mpv::Outbound::Log(
+                "surtr: invalid pause_timeout; using 0 (no timeout)".to_owned(),
+            ));
+            0
+        }
+    };
     let cache = match paths::cache_file() {
         Some(path) => Cache::load(path),
         None => Cache::disabled(),
@@ -179,7 +197,10 @@ async fn main() {
             claim,
             std::process::id(),
             roots,
-            Policy::default(),
+            Policy {
+                pause_timeout_ms,
+                ..Policy::default()
+            },
             &clock,
         )
         .await;

@@ -62,6 +62,10 @@ pub const CLAIM_SETTLE_MS: Millis = 400;
 /// The shipped [`Policy::claim_poll_ms`].
 pub const CLAIM_POLL_MS: Millis = 250;
 
+/// How long a pause may last before Presence is cleared. Zero means no timeout.
+/// The shipped [`Policy::pause_timeout_ms`].
+pub const PAUSE_TIMEOUT_MS: Millis = 0;
+
 /// Resolved display metadata for a played file: the body of a
 /// [`Lookup::Matched`]. No Match means no Presence.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -204,6 +208,9 @@ pub struct Policy {
     pub claim_poll_ms: Millis,
     /// [`MISS_OSD_SECONDS`]: how long the Miss OSD stays on screen.
     pub miss_osd_seconds: u64,
+    /// [`PAUSE_TIMEOUT_MS`]: milliseconds of continuous pause before Presence
+    /// is cleared. Zero disables the timeout.
+    pub pause_timeout_ms: Millis,
 }
 
 impl Default for Policy {
@@ -216,6 +223,7 @@ impl Default for Policy {
             claim_settle_ms: CLAIM_SETTLE_MS,
             claim_poll_ms: CLAIM_POLL_MS,
             miss_osd_seconds: MISS_OSD_SECONDS,
+            pause_timeout_ms: PAUSE_TIMEOUT_MS,
         }
     }
 }
@@ -453,6 +461,10 @@ pub(crate) struct Step<'a> {
     reported_miss: Option<String>,
     /// An admitted publish whose sample answer has not landed yet.
     pending_sample: bool,
+    /// When the current continuous pause expires, if the timeout is armed.
+    pause_deadline: Option<Millis>,
+    /// Set when a pause outlives the timeout; clears only on resume or load.
+    pause_expired: bool,
 }
 
 /// Opens a [`Step`] with tuned timing (tests use literal values).
@@ -492,6 +504,8 @@ impl StepBuilder {
             post_claim_at: None,
             reported_miss: None,
             pending_sample: false,
+            pause_deadline: None,
+            pause_expired: false,
         }
     }
 }
@@ -572,6 +586,7 @@ impl<'a> Step<'a> {
         let clear_at = self
             .desired_clear
             .map(|not_before| not_before.max(self.bucket.next_token_at(now)));
+        let pause_at = self.pause_deadline;
         // A dormant Daemon holds no intent: it wakes only for ownership.
         let publish_at = self.desired_publish.then(|| self.bucket.next_token_at(now));
         let retry_at = self.retry.as_ref().map(|retry| retry.at);
@@ -595,9 +610,12 @@ impl<'a> Step<'a> {
         match clear_at {
             Some(clear_at) => earliest(
                 Some(clear_at),
-                earliest(retry_at, earliest(poll_at, settle_at)),
+                earliest(pause_at, earliest(retry_at, earliest(poll_at, settle_at))),
             ),
-            None => earliest(earliest(publish_at, retry_at), earliest(poll_at, settle_at)),
+            None => earliest(
+                earliest(earliest(publish_at, pause_at), retry_at),
+                earliest(poll_at, settle_at),
+            ),
         }
     }
 
@@ -612,9 +630,10 @@ impl<'a> Step<'a> {
             MpvEvent::FileLoaded { path, live } => self.on_file_loaded(now, path, &live, out),
             MpvEvent::PlaybackRestart => self.trigger_publish(),
             MpvEvent::EndFile => self.on_end_file(now),
-            MpvEvent::Property(Property::Pause(_))
-            | MpvEvent::Property(Property::Speed(_))
-            | MpvEvent::Property(Property::Duration(_)) => self.trigger_publish(),
+            MpvEvent::Property(Property::Pause(paused)) => self.on_pause(now, paused),
+            MpvEvent::Property(Property::Speed(_)) | MpvEvent::Property(Property::Duration(_)) => {
+                self.trigger_publish()
+            }
             MpvEvent::Property(Property::EofReached(reached)) => {
                 self.eof_reached = reached;
                 if reached {
@@ -659,6 +678,13 @@ impl<'a> Step<'a> {
     }
 
     fn on_timer<C: OwnerClaim>(&mut self, now: Millis, claim: &mut C, out: &mut Outcome) {
+        if self.pause_deadline.is_some_and(|at| now >= at) {
+            self.pause_deadline = None;
+            self.pause_expired = true;
+            // The normal clear queue: one token, only if a card is actually up.
+            self.request_clear(now);
+        }
+
         if self.retry.as_ref().is_some_and(|retry| now >= retry.at) {
             self.fire_retry(now, out);
         }
@@ -696,6 +722,21 @@ impl<'a> Step<'a> {
         }
     }
 
+    /// A pause arms the timeout; resuming cancels it and lets Presence back.
+    fn on_pause(&mut self, now: Millis, paused: bool) {
+        if paused {
+            if !self.pause_expired {
+                self.pause_deadline = (self.policy.pause_timeout_ms > 0)
+                    .then(|| now.saturating_add(self.policy.pause_timeout_ms));
+                self.trigger_publish();
+            }
+        } else {
+            self.pause_deadline = None;
+            self.pause_expired = false;
+            self.trigger_publish();
+        }
+    }
+
     /// A file finished loading; `live` is the snapshot the adapter read with
     /// it (including the session Toggle at that moment).
     fn on_file_loaded(&mut self, now: Millis, path: String, live: &LiveState, out: &mut Outcome) {
@@ -719,6 +760,12 @@ impl<'a> Step<'a> {
             self.trigger_publish();
             return;
         }
+
+        // A real file change starts a fresh pause window, even if the new
+        // file's first frame is already paused.
+        self.pause_expired = false;
+        self.pause_deadline = (self.policy.pause_timeout_ms > 0 && live.paused)
+            .then(|| now.saturating_add(self.policy.pause_timeout_ms));
 
         if seamless {
             // The grace clear is for a file that did not arrive; a successor
@@ -830,6 +877,7 @@ impl<'a> Step<'a> {
         self.retry = None;
         self.reported_miss = None;
         self.desired_publish = false;
+        self.pause_deadline = None;
         self.request_clear(until);
     }
 
@@ -872,7 +920,8 @@ impl<'a> Step<'a> {
             self.clear(out);
             return;
         };
-        if !self.owning
+        if self.pause_expired
+            || !self.owning
             || !live.enabled
             || live.eof_reached
             || live.path.as_deref() != Some(current.path.as_str())
@@ -919,7 +968,12 @@ impl<'a> Step<'a> {
     /// a pending clear always goes first. A non-Owner keeps observing and
     /// resolving, but never marks anything for dispatch.
     fn trigger_publish(&mut self) {
-        if self.owning && self.enabled && !self.eof_reached && self.current.is_some() {
+        if !self.pause_expired
+            && self.owning
+            && self.enabled
+            && !self.eof_reached
+            && self.current.is_some()
+        {
             self.desired_publish = true;
         }
     }
@@ -1670,6 +1724,7 @@ mod tests {
         assert_eq!(policy.claim_settle_ms, CLAIM_SETTLE_MS);
         assert_eq!(policy.claim_poll_ms, CLAIM_POLL_MS);
         assert_eq!(policy.miss_osd_seconds, MISS_OSD_SECONDS);
+        assert_eq!(policy.pause_timeout_ms, PAUSE_TIMEOUT_MS);
         assert_eq!((GRACE_MS, REFILL_MS), (500, 4_000));
         assert_eq!((BUCKET_CAPACITY, CLAIM_POLL_MS), (5, 250));
         assert_eq!((CLAIM_DEBOUNCE_MS, CLAIM_SETTLE_MS), (300, 400));

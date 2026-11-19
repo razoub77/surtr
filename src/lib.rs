@@ -52,4 +52,20 @@ pub mod cli {
             _ => crate::matcher::TitleLanguage::English,
         }
     }
+
+    /// The pause timeout from `script-opts/surtr.conf` or `--pause-timeout`,
+    /// in milliseconds. Whole seconds are expected; blank or missing means 0
+    /// (no timeout). Negative, unparsable and out-of-range values are errors
+    /// so the caller can report them and keep running with the timeout off.
+    pub fn pause_timeout_ms(value: Option<&str>) -> Result<crate::clock::Millis, ()> {
+        match value.map(str::trim).filter(|value| !value.is_empty()) {
+            None => Ok(0),
+            Some(raw) => raw
+                .parse::<u64>()
+                .ok()
+                .and_then(|seconds| seconds.checked_mul(1000))
+                .and_then(|millis| i64::try_from(millis).ok())
+                .ok_or(()),
+        }
+    }
 }

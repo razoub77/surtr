@@ -27,7 +27,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 9. As an anime viewer, I want frequent seeking to coalesce into rate-limited updates, so that Discord does not rate-limit or drop my presence updates.
 10. As an anime viewer, I want pausing playback to drop the progress bar and lead the state with `⏸️ Paused`, so that friends know I have stepped away and Discord does not keep running an inaccurate progress bar.
 11. As an anime viewer, I want resuming playback after a pause to re-publish with fresh timestamps immediately, so that the live progress bar resumes accurately without waiting for a periodic poll.
-12. As an anime viewer, I want long pauses to retain the paused presence card indefinitely, so that leaving an episode on pause does not prematurely blank my Discord activity.
+12. As an anime viewer, I want long pauses to retain the paused presence card indefinitely by default, and to clear it after a configurable `pause_timeout` when I choose, so that leaving an episode on pause does not prematurely blank my Discord activity unless I ask it to.
 13. As an anime viewer, I want files with `--keep-open` enabled to clear presence upon reaching the end of the file, so that a finished episode does not linger indefinitely as a paused card.
 14. As an anime viewer, I want sequential episodes playing back-to-back in a playlist to transition smoothly within a short grace window, so that my Discord profile does not blink blank between episodes.
 15. As an anime viewer, I want stopping playback or closing mpv to clear my presence promptly, so that Discord does not display a stale watching status when I am done.
@@ -57,7 +57,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 - Lifetime binding: the Daemon exits cleanly when the mpv IPC pipe breaks or the parent mpv process terminates. There is no background lingering and no orphan daemon process.
 
 ### Configuration and Discovery
-- Configuration lives in mpv's standard `script-opts/surtr.conf`, holding `anime_roots`, `client_id`, optional `binary_path`, `overrides_path`, `details_title_lang`, and `toggle_key`.
+- Configuration lives in mpv's standard `script-opts/surtr.conf`, holding `anime_roots`, `client_id`, optional `binary_path`, `overrides_path`, `details_title_lang`, `pause_timeout`, and `toggle_key`.
 - `anime_roots` is a semicolon-separated list of absolute Windows folder paths. Each path is canonicalized and compared case-insensitively per component to guard against prefix bleed (e.g. `D:\Anime2` will never match root `D:\Anime`).
 - Binary discovery defaults to `surtr.exe` situated directly alongside `main.lua` in the script directory. An optional `binary_path` override in `surtr.conf` is expanded via mpv's `expand-path` command to support portable meta-paths (`~~/`, `~~exe_dir/`). Relative paths and working directory lookups are disallowed.
 - If mpv lacks `user-data` property support (mpv < 0.36) or the Daemon executable cannot be located, Lua emits a single diagnostic error to the console and halts without binding shortcuts.
@@ -95,6 +95,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 - Playing state publishes timestamps; paused state omits `timestamps` completely and leads `state` with `⏸️ Paused` instead of `▶️ Playing` to prevent the Discord client from rendering an inaccurate advancing progress bar.
 - `time-pos` is never continuously observed over IPC; it is sampled on demand immediately prior to publishing an update.
 - Rate limiting uses a token bucket with 5 tokens refilling at 1 token every 4 seconds (Discord's 5 updates per 20 seconds policy).
+- `pause_timeout` is a whole number of seconds, `0` (the default) disabling it. A pause arms a deadline; seeking while paused does not restart it. On expiry the normal clear queue emits one clear; the card stays off through reconnects, claims and Toggles until playback resumes or another file loads. The owner claim is kept and the daemon does not exit.
 - Exactly one desired Presence state is maintained in memory (latest wins). Queued updates re-sample live player properties (`time-pos`, `pause`, `speed`) at the actual moment of dispatch to eliminate stale timestamp payloads.
 - Playlist advancement uses a 500 ms grace window on file termination (`end-file`): loading a subsequent file within the window transitions presence seamlessly without blanking.
 - End-of-file conditions under `--keep-open` (`eof-reached = true`) are treated as playback completion and clear presence immediately.

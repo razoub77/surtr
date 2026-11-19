@@ -1,7 +1,7 @@
 //! The Daemon's command line contract with `main.lua`: configuration parsing
 //! and the help text the binary prints.
 
-use surtr::cli::{anime_roots, client_id, title_language};
+use surtr::cli::{anime_roots, client_id, pause_timeout_ms, title_language};
 use surtr::matcher::TitleLanguage;
 
 #[test]
@@ -67,4 +67,19 @@ fn an_unrecognized_title_language_keeps_the_default() {
     assert_eq!(title_language(None), TitleLanguage::English);
     assert_eq!(title_language(Some("")), TitleLanguage::English);
     assert_eq!(title_language(Some("romai")), TitleLanguage::English);
+}
+
+#[test]
+fn pause_timeout_is_whole_seconds_with_zero_disabled() {
+    assert_eq!(pause_timeout_ms(None), Ok(0));
+    assert_eq!(pause_timeout_ms(Some("  ")), Ok(0));
+    assert_eq!(pause_timeout_ms(Some("0")), Ok(0));
+    assert_eq!(pause_timeout_ms(Some(" 300 ")), Ok(300_000));
+}
+
+#[test]
+fn a_bad_pause_timeout_falls_back_to_disabled() {
+    assert!(pause_timeout_ms(Some("abc")).is_err());
+    assert!(pause_timeout_ms(Some("-1")).is_err());
+    assert!(pause_timeout_ms(Some("18446744073709551615")).is_err());
 }

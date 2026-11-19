@@ -23,3 +23,6 @@ desktop.ini
 # Local research notes (kept on disk, never published)
 /docs/research/
 .scratch/
+
+# Agents
+.zcode/

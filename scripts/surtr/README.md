@@ -110,6 +110,12 @@ The other keys:
   (`TV • Finished • Fall 2023 • Adventure, Drama`), so it has no language
   setting.
 
+- `pause_timeout` is `0`: a paused card stays until you resume or load another
+  file. Set whole seconds (for example `pause_timeout=300`) to clear the card
+  after that long a continuous pause. Seeking while paused does not restart
+  the countdown, and resuming brings the card back. A bad value is ignored
+  with a message on mpv's console.
+
 The configuration file is read once when mpv starts. **Restart mpv after
 editing it.**
 
