@@ -4367,5 +4367,142 @@
    },
    "synonyms": []
   }
+ ],
+ "fruits basket": [
+  {
+   "id": 120,
+   "format": "TV",
+   "seasonYear": 2001,
+   "season": "SUMMER",
+   "status": "FINISHED",
+   "episodes": 26,
+   "genres": [
+    "Comedy",
+    "Drama",
+    "Romance",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Fruits Basket",
+    "english": "Fruits Basket"
+   },
+   "synonyms": [
+    "Furuba",
+    "Fruba",
+    "フルバ"
+   ]
+  },
+  {
+   "id": 105334,
+   "format": "TV",
+   "seasonYear": 2019,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 25,
+   "genres": [
+    "Comedy",
+    "Drama",
+    "Romance",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Fruits Basket: 1st Season",
+    "english": "Fruits Basket (2019)"
+   },
+   "synonyms": [
+    "Fruits Basket (Zenpen)",
+    "Furuba",
+    "Fruba",
+    "フルバ",
+    "水果篮子（第一季）",
+    "水果篮子（2019）",
+    "เสน่ห์สาวข้าวปั้น",
+    "Корзинка фруктов"
+   ]
+  },
+  {
+   "id": 124194,
+   "format": "TV",
+   "seasonYear": 2021,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 13,
+   "genres": [
+    "Comedy",
+    "Drama",
+    "Psychological",
+    "Romance",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Fruits Basket: The Final",
+    "english": "Fruits Basket The Final Season"
+   },
+   "synonyms": [
+    "Furuba",
+    "Fruba",
+    "フルバ",
+    "Fruits Basket Season 3",
+    "水果篮子 最终季",
+    "เสน่ห์สาวข้าวปั้น ภาค 3",
+    "เสน่ห์สาวข้าวปั้น ภาคสุดท้าย",
+    "Корзинка фруктов: Финал"
+   ]
+  },
+  {
+   "id": 111762,
+   "format": "TV",
+   "seasonYear": 2020,
+   "season": "SPRING",
+   "status": "FINISHED",
+   "episodes": 25,
+   "genres": [
+    "Comedy",
+    "Drama",
+    "Psychological",
+    "Romance",
+    "Slice of Life",
+    "Supernatural"
+   ],
+   "title": {
+    "romaji": "Fruits Basket: 2nd Season",
+    "english": "Fruits Basket Season 2"
+   },
+   "synonyms": [
+    "Furuba",
+    "Fruba",
+    "フルバ",
+    "水果篮子 第二季",
+    "เสน่ห์สาวข้าวปั้น ภาค 2",
+    "Fruits Basket (2019) 2",
+    "Корзинка фруктов 2"
+   ]
+  },
+  {
+   "id": 136192,
+   "format": "MOVIE",
+   "seasonYear": 2022,
+   "season": "WINTER",
+   "status": "FINISHED",
+   "episodes": 1,
+   "genres": [
+    "Drama",
+    "Romance"
+   ],
+   "title": {
+    "romaji": "Fruits Basket: prelude",
+    "english": "Fruits Basket -prelude-"
+   },
+   "synonyms": [
+    "The Story of Kyoko and Katsuya",
+    "今日子と勝也の物語",
+    "Kyouko to Katsuya no Monogatari",
+    "Fruits Basket Movie",
+    "Корзинка фруктов: Прелюдия"
+   ]
+  }
  ]
 }

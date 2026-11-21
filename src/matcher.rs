@@ -224,10 +224,10 @@ impl<S: MediaSource> Matcher<S> {
             .iter()
             .take(3)
             .map(|entry| {
-                let title = candidate_title(entry.candidate, self.title_language).unwrap_or_default();
                 format!(
-                    "id={} title=\"{title}\" score={:.3}",
-                    entry.candidate.id, entry.score
+                    "{} score={:.3}",
+                    candidate_label(entry.candidate, self.title_language),
+                    entry.score
                 )
             })
             .collect::<Vec<_>>()
@@ -235,12 +235,27 @@ impl<S: MediaSource> Matcher<S> {
         self.trace_verbose(format!("top Candidates for \"{query}\": [{top}]"));
     }
 
+    /// Candidates the parsed release year ruled out of this search.
+    fn trace_year_excluded(&mut self, year: u32, excluded: &[&Candidate]) {
+        let list = excluded
+            .iter()
+            .map(|candidate| candidate_label(candidate, self.title_language))
+            .collect::<Vec<_>>()
+            .join(", ");
+        self.trace_verbose(format!(
+            "year {year} excludes {} {}: [{list}]",
+            excluded.len(),
+            candidate_noun(excluded.len())
+        ));
+    }
+
     /// The Candidate that won this search, with the scores that ranked it.
     fn trace_chosen(&mut self, candidate: &Candidate, scores: scorer::Scores) {
-        let title = candidate_title(candidate, self.title_language).unwrap_or_default();
         self.trace(format!(
-            "chose Candidate id={} title=\"{title}\" score={:.3} runner-up={:.3}",
-            candidate.id, scores.best, scores.runner_up
+            "chose Candidate {} score={:.3} runner-up={:.3}",
+            candidate_label(candidate, self.title_language),
+            scores.best,
+            scores.runner_up
         ));
     }
 
@@ -369,7 +384,13 @@ impl<S: MediaSource> Matcher<S> {
                 continue;
             }
             zero = false;
-            let ranked = scorer::ranked(query, &candidates, &context);
+            let partition = scorer::partition_by_year(&candidates, &context);
+            if let Some(year) = context.year {
+                if !partition.excluded.is_empty() {
+                    self.trace_year_excluded(year, &partition.excluded);
+                }
+            }
+            let ranked = scorer::ranked(query, &partition.eligible, &context);
             self.trace_top_candidates(query, &ranked);
             match scorer::choose(&ranked, &context) {
                 scorer::Selection::One(candidate, scores) => {
@@ -939,6 +960,12 @@ fn format_label(format: Option<&str>) -> Option<&'static str> {
 
 /// The title for the card's main line: the preferred language first, the
 /// entry's other language as fallback.
+/// One Candidate's id and configured-language title, as named in a trace.
+fn candidate_label(candidate: &Candidate, main: TitleLanguage) -> String {
+    let title = candidate_title(candidate, main).unwrap_or_default();
+    format!("id={} title=\"{title}\"", candidate.id)
+}
+
 fn candidate_title(candidate: &Candidate, main: TitleLanguage) -> Option<String> {
     let title = candidate.title.as_ref()?;
     let (main, fallback) = match main {

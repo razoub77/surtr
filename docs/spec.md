@@ -72,6 +72,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
   - Token containment (all query tokens contained within candidate title): 0.850.
   - Fuzzy string similarity below containment.
   - Bonus modifiers for release format (TV vs MOVIE vs OVA) and release year.
+- A release year on the basename, or on the nearest ancestor folder when the basename has none, rules out Candidates with a different known `seasonYear`. Candidates without a known year stay eligible; year never enters the AniList query, cache key or Override key.
 - Candidate acceptance requires the highest score to achieve at least 0.850 **and** exceed the runner-up score by a margin of at least 0.100.
 - Synonyms are evaluated as a fallback only if no candidate's primary titles are an exact normalized match, preventing secondary synonym noise from triggering false positives while still letting a long official title (`Romelia Senki: Maou wo Taoshita nochi mo …`) be found by the short name it carries as a synonym.
 - A score tie between candidates is never broken arbitrarily: ties result in no Match (and therefore no Presence), unless it is a Season 1 or unmarked file that fits within the Root Season's known episode count.
@@ -138,7 +139,7 @@ Testing centers on one high-level architectural seam: the **Daemon Core State Ma
   - `Clock`: Controllable virtual clock for deterministic validation of the token-bucket rate limiter, 500 ms playlist grace window, 30-day cache TTL, and 429 backoff intervals.
   - `MpvSink`: Captures outgoing IPC commands (`show-text` for OSD and one of four `script-message surtr-log[-level]` commands for console Diagnostics).
 - **Tested Behaviors**:
-  - Full evaluation of the 49-file golden corpus verifying correct title, season resolution, absolute episode remapping, and candidate acceptance against recorded AniList payloads.
+  - Full evaluation of the 51-file golden corpus verifying correct title, season resolution, absolute episode remapping, and candidate acceptance against recorded AniList payloads.
   - Rate-limiter token-bucket refill and seek-scrub coalescing with live timestamp re-sampling.
   - Pausing, unpausing, and speed modifications correctly altering or stripping Discord timestamp bars.
   - Grace window mechanics preventing presence flickering across consecutive playlist files.

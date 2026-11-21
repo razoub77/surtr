@@ -30,8 +30,10 @@ pub struct ParsedRelease {
     pub episode: Option<u32>,
     /// A Movie: no Parsed Episode, so no Episode segment in the Presence.
     pub movie: bool,
-    /// Release year read off the filename: a score bonus only, never a query
-    /// token.
+    /// Release year read off the basename, else the nearest ancestor folder:
+    /// a constraint on the Match, never a query token. An ancestor folder is
+    /// scanned whole (`Show.2019` counts); only the basename loses its
+    /// extension first.
     pub year: Option<u32>,
     /// The words after the last `-` of a Movie filename (`Sword Art Online -
     /// Movie 01 - Ordinal Scale` → `ordinal scale`): the fallback query when
@@ -74,9 +76,10 @@ pub fn parse(path: &str) -> Result<ParsedRelease, Rejected> {
     if name.is_empty() {
         return Err(Rejected::NoFilename);
     }
-    // A year is a score bonus only (it makes AniList search return zero), and
-    // it is read off the basename like the research harness did.
-    let year = year_of(&name);
+    // A year never reaches AniList search (it makes it return zero). The
+    // basename is primary; a file that omits it inherits the nearest ancestor
+    // folder's year, e.g. `Fruits Basket (2019)\Season 1\Show - 01.mkv`.
+    let year = year_of(&name).or_else(|| ancestor_year(raw));
     // `S01OVA-…`: a special with no numeric episode. It parses (the folder
     // still names the show) but is neither a Movie nor an episode, so it
     // yields no Presence.
@@ -207,6 +210,15 @@ fn movie_tail(tokens: &[String], seam: Option<usize>) -> Option<String> {
 /// Where the folder/filename seam sits in the token stream, if any.
 fn seam_position(tokens: &[String]) -> Option<usize> {
     tokens.iter().position(|t| t == SEAM)
+}
+
+/// The nearest ancestor folder carrying a year, parent first. A release that
+/// omits the year in its basename inherits the show folder's year.
+fn ancestor_year(raw_path: &str) -> Option<u32> {
+    raw_path
+        .rsplit(['\\', '/'])
+        .skip(1)
+        .find_map(|folder| year_of(folder))
 }
 
 /// A 4-digit year (1920–2100) in the filename, e.g. `(2007)`, `.2026.`. The

@@ -170,6 +170,37 @@ async fn a_scored_result_set_lists_its_top_three_candidates_verbosely() {
     assert!(host.osds().is_empty());
 }
 
+/// A parsed release year names the Candidates it ruled out of the search.
+#[tokio::test]
+async fn a_parsed_release_year_names_the_candidates_it_excludes() {
+    let old = Candidate {
+        season_year: Some(2001),
+        ..show(120, "Fruits Basket", Some(26))
+    };
+    let new = Candidate {
+        season_year: Some(2019),
+        ..show(105334, "Fruits Basket: 1st Season", Some(25))
+    };
+    let mut source = Source::new(vec![("fruits basket", vec![old, new])], vec![]);
+    let mut matcher = Matcher::new(&mut source);
+    let (mut host, mut runner) = harness(&mut matcher);
+
+    host.load(
+        &mut runner,
+        r"D:\Anime\Fruits Basket (2019)\[ASW] Fruits Basket - 01.mkv",
+    )
+    .await;
+
+    assert_eq!(
+        host.logs_at(Level::Verbose),
+        vec![
+            r#"year 2019 excludes 1 Candidate: [id=120 title="Fruits Basket"]"#.to_owned(),
+            r#"top Candidates for "fruits basket": [id=105334 title="Fruits Basket: 1st Season" score=0.900]"#.to_owned(),
+        ]
+    );
+    assert!(host.osds().is_empty());
+}
+
 /// An explicit season marker earns a line saying whether the entry's titles
 /// or synonyms carried that ordinal. The line is console-only.
 #[tokio::test]

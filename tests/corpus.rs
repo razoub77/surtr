@@ -388,6 +388,20 @@ const ROWS: &[(u8, Row)] = &[
             187402,
         ),
     ),
+    (
+        51,
+        ok(
+            r"D:\!Anime\Fruits Basket\Season 1\[Trix] Fruits Basket (2019) S01E01 (BD 1080p AV1) [03CF6461].mkv",
+            105334,
+        ),
+    ),
+    (
+        52,
+        ok(
+            r"D:\!Anime\Fruits Basket (2019)\Season 1\[Trix] Fruits Basket S01E01 (BD 1080p AV1) [03CF6461].mkv",
+            105334,
+        ),
+    ),
 ];
 
 /// The recorded fixture search: normalize the query and look it up. An

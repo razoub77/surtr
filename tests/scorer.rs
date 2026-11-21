@@ -148,26 +148,62 @@ fn the_two_spellings_of_the_object_particle_score_equal() {
 }
 
 #[test]
-fn the_release_year_is_a_small_bonus() {
-    // Containment 0.85 alone fails against a rival exact match, but the
-    // query's release year lifts its containment score.
-    let expected = Candidate {
-        season_year: Some(2007),
-        ..candidate(1723, "Clannad: The Motion Picture")
+fn the_release_year_excludes_a_different_known_year() {
+    // Exact title 1.0 for the 2001 entry could never be beaten by the 2019
+    // entry's containment 0.85 + 0.03 year bonus: the year must exclude it.
+    let old = Candidate {
+        season_year: Some(2001),
+        ..candidate(120, "Fruits Basket")
     };
-    let rival = Candidate {
-        season_year: Some(2005),
-        ..candidate(2167, "Clannad Movie: Another Title")
+    let new = Candidate {
+        season_year: Some(2019),
+        ..candidate(105334, "Fruits Basket: 1st Season")
     };
     let context = Context {
-        year: Some(2007),
-        movie: false,
-        episodic: false,
-        season: None,
+        year: Some(2019),
+        ..ctx()
     };
-    // Containment + year = 0.88 vs rival containment 0.85: margin 0.03 is
-    // still inside 0.10, so this stays a reject — the bonus is small.
-    assert_eq!(scorer::select("clannad movie the motion picture", &[expected, rival], &context), None);
+    assert_eq!(
+        scorer::select("fruits basket", &[old, new], &context).map(|c| c.id),
+        Some(105334)
+    );
+}
+
+#[test]
+fn a_candidate_without_a_known_year_stays_selectable() {
+    let old = Candidate {
+        season_year: Some(2001),
+        ..candidate(120, "Fruits Basket")
+    };
+    let unknown = candidate(999, "Fruits Basket: 1st Season");
+    let context = Context {
+        year: Some(2019),
+        ..ctx()
+    };
+    assert_eq!(
+        scorer::select("fruits basket", &[old, unknown], &context).map(|c| c.id),
+        Some(999)
+    );
+}
+
+#[test]
+fn contradictory_known_years_leave_no_match() {
+    let old = Candidate {
+        season_year: Some(2001),
+        ..candidate(120, "Fruits Basket")
+    };
+    let sequel = Candidate {
+        season_year: Some(2021),
+        ..candidate(124194, "Fruits Basket: The Final")
+    };
+    let context = Context {
+        year: Some(2019),
+        ..ctx()
+    };
+    assert_eq!(
+        scorer::select("fruits basket", &[old, sequel], &context),
+        None
+    );
 }
 
 #[test]

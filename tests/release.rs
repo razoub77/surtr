@@ -1,4 +1,4 @@
-//! Golden filename-parsing tests: all 49 rows of the match corpus
+//! Golden filename-parsing tests for rows of the match corpus
 //! (`tests/corpus.rs`), plus the Anime Root gate.
 //!
 //! The corpus' expected AniList entry is what the matcher must land on; here
@@ -307,6 +307,18 @@ const ROWS: &[Row] = &[
         title: "seishun buta yarou wa randoseru girl no yume wo minai",
         episode: None,
     },
+    Row {
+        n: 51,
+        path: r"D:\!Anime\Fruits Basket\Season 1\[Trix] Fruits Basket (2019) S01E01 (BD 1080p AV1) [03CF6461].mkv",
+        title: "fruits basket",
+        episode: Some(1),
+    },
+    Row {
+        n: 52,
+        path: r"D:\!Anime\Fruits Basket (2019)\Season 1\[Trix] Fruits Basket S01E01 (BD 1080p AV1) [03CF6461].mkv",
+        title: "fruits basket",
+        episode: Some(1),
+    },
 ];
 
 #[test]
@@ -353,8 +365,8 @@ fn every_corpus_titled_file_parses_but_the_ova() {
 }
 
 #[test]
-fn corpus_has_48_parseable_rows() {
-    assert_eq!(ROWS.len(), 48);
+fn corpus_has_50_parseable_rows() {
+    assert_eq!(ROWS.len(), 50);
 }
 
 // ---------------------------------------------------------------------------
@@ -530,6 +542,29 @@ fn the_release_year_is_read_off_the_basename_with_word_boundaries() {
     // A resolution claim is not a year: no word boundary after `1920`.
     let parsed = release::parse(r"D:\A\Show\[X] Show - 01 [1920x1080].mkv").unwrap();
     assert_eq!(parsed.year, None);
+}
+
+#[test]
+fn the_release_year_falls_back_to_the_nearest_ancestor_folder() {
+    let parsed =
+        release::parse(r"D:\!Anime\Fruits Basket (2019)\Season 1\[Trix] Fruits Basket S01E01.mkv")
+            .unwrap();
+    assert_eq!(parsed.year, Some(2019));
+
+    // A year on the basename beats one on an ancestor folder.
+    let parsed = release::parse(
+        r"D:\!Anime\Fruits Basket (2019)\Season 1\[Trix] Fruits Basket (2024) S01E01.mkv",
+    )
+    .unwrap();
+    assert_eq!(parsed.year, Some(2024));
+
+    // A dot-separated folder year is a year too.
+    let parsed = release::parse(r"D:\!Anime\Show.2019\[X] Show - 01.mkv").unwrap();
+    assert_eq!(parsed.year, Some(2019));
+
+    // Two ancestors carry years: the nearer one wins.
+    let parsed = release::parse(r"D:\!Anime\Show (2001)\Show (2019)\[X] Show - 01.mkv").unwrap();
+    assert_eq!(parsed.year, Some(2019));
 }
 
 #[test]

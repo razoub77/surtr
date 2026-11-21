@@ -186,7 +186,7 @@ fn raw_score(query_norm: &str, query_sig: &[String], titles: &[String]) -> f64 {
 /// The format and year bonuses on top of the raw title score.
 fn bonus(candidate: &Candidate, context: &Context) -> f64 {
     let mut bonus = 0.0;
-    if context.year.is_some() && context.year == candidate.season_year {
+    if year_matches(candidate, context) {
         bonus += YEAR_BONUS;
     }
     let format = candidate.format.as_deref();
@@ -218,8 +218,35 @@ fn score(
     (raw + bonus(candidate, context)).clamp(0.0, 1.0)
 }
 
+/// Whether a Candidate's known year agrees with the parsed release year from
+/// the basename or an ancestor folder.
+fn year_matches(candidate: &Candidate, context: &Context) -> bool {
+    context
+        .year
+        .is_some_and(|year| candidate.season_year == Some(year))
+}
+
+/// One division of a search result set by the parsed release year.
+pub struct YearPartition<'a> {
+    pub eligible: Vec<&'a Candidate>,
+    pub excluded: Vec<&'a Candidate>,
+}
+
+/// A known year different from the parsed release year rules a Candidate out;
+/// one without a known year stays selectable, and with no parsed year every
+/// Candidate is eligible. Excluding a known mismatch is the only way a year
+/// can decide — the score bonus alone cannot beat an exact title match.
+pub fn partition_by_year<'a>(candidates: &'a [Candidate], context: &Context) -> YearPartition<'a> {
+    let (eligible, excluded) = candidates.iter().partition(|candidate| {
+        context.year.is_none()
+            || candidate.season_year.is_none()
+            || year_matches(candidate, context)
+    });
+    YearPartition { eligible, excluded }
+}
+
 /// Every Candidate's final score for this query.
-fn final_scores(query: &str, candidates: &[Candidate], context: &Context) -> Vec<f64> {
+fn final_scores(query: &str, candidates: &[&Candidate], context: &Context) -> Vec<f64> {
     let query_norm = tokens(query).join(" ");
     let query_sig = significant(query);
 
@@ -258,10 +285,15 @@ pub struct Ranked<'a> {
 
 /// Scores one result set once, highest first: the single source of truth for
 /// both the choice and its verbose top-three trace.
-pub fn ranked<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -> Vec<Ranked<'a>> {
+pub fn ranked<'a>(
+    query: &str,
+    candidates: &[&'a Candidate],
+    context: &Context,
+) -> Vec<Ranked<'a>> {
     let scores = final_scores(query, candidates, context);
     let mut out: Vec<Ranked<'_>> = candidates
         .iter()
+        .copied()
         .zip(scores)
         .map(|(candidate, score)| Ranked { candidate, score })
         .collect();
@@ -352,7 +384,8 @@ pub fn select<'a>(
     candidates: &'a [Candidate],
     context: &Context,
 ) -> Option<&'a Candidate> {
-    let ranked = ranked(query, candidates, context);
+    let partition = partition_by_year(candidates, context);
+    let ranked = ranked(query, &partition.eligible, context);
     choose(&ranked, context).one()
 }
 
