@@ -12,7 +12,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::windows::named_pipe::ClientOptions;
 use tokio::sync::mpsc;
 
-use crate::daemon::Presence;
+use crate::daemon::{Diagnostic, Presence};
 use crate::mpv::Outbound;
 
 /// Commands from the core's PresenceSink.
@@ -214,14 +214,14 @@ pub async fn run_publisher(
                     if last_report.is_none_or(|at| now.duration_since(at) >= REPORT_INTERVAL) {
                         last_report = Some(now);
                         if let Some(tx) = &diagnostics {
-                            let _ = tx.send(Outbound::Log(
+                            let _ = tx.send(Outbound::Log(Diagnostic::error(
                                 "surtr: Discord is not accepting a presence connection \
                                  (no answer or refusal on every pipe). Check that the \
                                  Discord app is running and signed in, and that \
                                  SURTR_CLIENT_ID names a registered application \
                                  (README §3 Configure)."
                                     .to_owned(),
-                            ));
+                            )));
                         }
                     }
                     let delay = backoff;
@@ -280,8 +280,8 @@ pub async fn run_publisher(
                         Ok((_, payload)) => {
                             if let Some(message) = error_message(&payload) {
                                 if let Some(tx) = &diagnostics {
-                                    let _ = tx.send(Outbound::Log(format!(
-                                        "surtr: Discord rejected the presence update: {message}"
+                                    let _ = tx.send(Outbound::Log(Diagnostic::error(
+                                        format!("surtr: Discord rejected the presence update: {message}")
                                     )));
                                 }
                             }

@@ -13,7 +13,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::daemon::{LiveState, MpvEvent, Property};
+use crate::daemon::{Diagnostic, LiveState, MpvEvent, Property};
 
 /// The daemon retries connecting every 50–100 ms for up to 5 s: mpv creates
 /// its pipe listener asynchronously after `input-ipc-server` is set (ADR 0001).
@@ -57,9 +57,9 @@ struct PendingSample {
 /// [`crate::daemon::Effect::Osd`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outbound {
-    /// A console line: `script-message surtr-log`, re-emitted by Lua as
-    /// `mp.msg.error` so the console prefixes it with `[surtr]`.
-    Log(String),
+    /// One console Diagnostic: `script-message surtr-log[-level]`, re-emitted
+    /// by Lua through the matching `mp.msg` function with `[surtr]` prefixed.
+    Log(Diagnostic),
     /// A transient OSD toast: `show-text`, visible for `seconds`.
     ShowText { text: String, seconds: u64 },
 }
@@ -67,8 +67,9 @@ pub enum Outbound {
 /// Runs one mpv session to completion.
 ///
 /// - `events`: domain events handed to the core.
-/// - `outbound`: the core's diagnostics, sent as `script-message surtr-log`
-///   (console, through Lua) or `show-text` (OSD).
+/// - `outbound`: the core's level-tagged diagnostics, sent as one of four
+///   `script-message surtr-log[-level]` commands (console, through Lua), or
+///   `show-text` (OSD).
 /// - `samples`: on-demand live-state reads. The Runner answers each sample
 ///   demand the kernel makes immediately before a dispatch; the adapter reads
 ///   `time-pos` fresh and answers with the observed properties around it.
@@ -120,8 +121,8 @@ pub async fn run_session(
             // Console diagnostics and OSD toasts from the core.
             Some(outbound) = outbound.recv() => {
                 let command = match outbound {
-                    Outbound::Log(text) => {
-                        json!({"command": ["script-message", "surtr-log", text]})
+                    Outbound::Log(log) => {
+                        json!({"command": ["script-message", log.level.script_message(), log.text]})
                     }
                     // mpv's `show-text` duration is milliseconds.
                     Outbound::ShowText { text, seconds } => {

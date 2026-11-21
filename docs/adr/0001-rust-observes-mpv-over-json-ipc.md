@@ -22,3 +22,5 @@ ADR 0002 drops `time-pos` from the observed set: it is read on demand, only when
 
 ADR 0004 adds one launcher duty: `overrides_path` is validated and expanded with mpv's `expand-path`, because only mpv can resolve `~~` / `~~exe_dir`. The decision logic stays in Rust; Lua still only launches, forwards config and binds keys.
 
+Issue #1 adds one launcher duty: routing four IPC script messages to the matching `mp.msg` function. This supersedes the "nothing worth unit-testing" line above for that route only: `tests/launcher.tests.lua` drives a fake mp to check all four mappings. No logic moves into Lua.
+

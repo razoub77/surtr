@@ -16,6 +16,7 @@ Single-context: one `GLOSSARY.md` plus `docs/adr/` at the repo root. See `docs/a
 - Single test file / test: `cargo test --test corpus`, or `cargo test --test corpus golden_corpus_matches_the_recorded_entries`.
 - Package: `powershell -File scripts/package.ps1` (builds `target/release/surtr.exe`, writes `dist/surtr.zip`); verify with `powershell -File scripts/verify-package.ps1 -Zip dist/surtr.zip` (needs `lua` on PATH for launcher checks, or pass `-SkipLuaRun`).
 - Installer tests: `powershell -File tests/install.tests.ps1` (dash-free, offline: dot-sources `scripts/install.ps1 -SelfTest` and checks `Merge-SurtrConf`). `scripts/install.ps1` is what users run and what the release workflow publishes.
+- Launcher log routing: `lua tests/launcher.tests.lua` (needs `lua` on PATH; no mpv needed).
 
 ## Gotchas
 

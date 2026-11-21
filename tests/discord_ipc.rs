@@ -130,10 +130,11 @@ async fn first_log(mut log_rx: mpsc::UnboundedReceiver<Outbound>) -> String {
         .await
         .expect("a diagnostic within 15 s")
         .expect("the log channel is open");
-    let Outbound::Log(text) = received else {
+    let Outbound::Log(log) = received else {
         panic!("a log line, not another outbound command");
     };
-    text
+    assert_eq!(log.level, surtr::daemon::Level::Error);
+    log.text
 }
 
 /// A silent handshake must time out and be reported, not hang forever. This

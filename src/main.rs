@@ -9,7 +9,7 @@
 use surtr::anilist::AniList;
 use surtr::cache::{Cache, Cached};
 use surtr::clock::SystemClock;
-use surtr::daemon::Policy;
+use surtr::daemon::{Diagnostic, Policy};
 use surtr::host;
 use surtr::matcher::Matcher;
 use surtr::overrides::Overrides;
@@ -158,16 +158,16 @@ async fn main() {
         paths::legacy_overrides_file().as_deref(),
     );
     for text in override_messages {
-        let _ = mpv_tx.send(mpv::Outbound::Log(text));
+        let _ = mpv_tx.send(mpv::Outbound::Log(Diagnostic::error(text)));
     }
     // A bad pause_timeout never stops the daemon: report it and run with the
     // timeout off.
     let pause_timeout_ms = match surtr::cli::pause_timeout_ms(args.pause_timeout.as_deref()) {
         Ok(millis) => millis,
         Err(()) => {
-            let _ = mpv_tx.send(mpv::Outbound::Log(
+            let _ = mpv_tx.send(mpv::Outbound::Log(Diagnostic::error(
                 "surtr: invalid pause_timeout; using 0 (no timeout)".to_owned(),
-            ));
+            )));
             0
         }
     };

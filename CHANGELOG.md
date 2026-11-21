@@ -2,8 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+
+- A loaded file now prints one info-level `[surtr]` line with its full path, so
+  a console with only that line still shows the Daemon is running.
+
 ### Changed
 
+- Console Diagnostics now carry a level from the Daemon to mpv: four IPC script
+  messages (`surtr-log`, `surtr-log-warn`, `surtr-log-error`,
+  `surtr-log-verbose`) map to the matching `mp.msg` functions. Every previous
+  line stays unchanged at error level; verbose needs `--msg-level=all=v`.
+  No compatibility shim: daemon and launcher ship together.
 - Manual Overrides moved from `%LOCALAPPDATA%\surtr\overrides.json` to
   `script-opts/surtr-overrides.json`, beside `surtr.conf`. `overrides_path` in
   the conf points at a different file; the default is the file beside the conf.

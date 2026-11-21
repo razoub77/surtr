@@ -114,7 +114,7 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 - Overrides short-circuit search completely: when a match exists in `overrides.json`, external search is bypassed, and metadata is fetched directly by ID.
 - Overrides are parsed once at Daemon startup; modifications require restarting mpv.
 - If an anime file within an Anime Root cannot be matched automatically, the Daemon surfaces a 5-second mpv OSD notification: `Surtr: no Anime match for "<key>"`, printing the exact string required for `overrides.json`. A repairable miss earns the OSD and a console line; a fatal miss stays console-only, and a failed request reports nothing.
-- Daemon diagnostics reach mpv's console by sending an IPC script message (`script-message surtr-log <text>`), which the Lua script intercepts and prints via `mp.msg.error` with a `[surtr]` prefix.
+- Daemon diagnostics reach mpv's console as level-tagged IPC script messages: `surtr-log` (info, the default), `surtr-log-warn`, `surtr-log-error` and `surtr-log-verbose`. The Lua script routes each to the matching `mp.msg` function; mpv adds its `[surtr]` prefix. A loaded file prints one info line with its full path; every other diagnostic is an error line. The daemon and launcher ship in the same zip, so there is no compatibility shim for the old error-only contract.
 
 ### Local Disk Cache
 - Cache resides at `%LOCALAPPDATA%\surtr\cache.json`.
@@ -129,14 +129,14 @@ When a valid anime file plays, the Daemon resolves the exact franchise season, r
 - Real network connections, operating system named pipes, and live Discord clients are excluded from automated test suites to maintain zero-flakiness and sub-second execution speeds.
 
 ### Target Module and Seam: The Daemon Core
-Testing centers entirely on one high-level architectural seam: the **Daemon Core State Machine**.
+Testing centers on one high-level architectural seam: the **Daemon Core State Machine**, plus one launcher smoke test for the four IPC log routes.
 
 - **Inputs**: A scripted sequence of mpv JSON IPC events (`file-loaded`, `playback-restart`, `end-file`), property changes (`pause`, `speed`, `eof-reached`, `user-data/surtr/enabled`), and canned property responses (`path`, `time-pos`, `duration`).
 - **Ports & Mocks**:
   - `MetadataClient`: Mocked using pre-recorded JSON fixture responses from AniList GraphQL queries.
   - `PresenceSink`: In-memory recording sink verifying the sequence of `publish(Activity)` and `clear()` payloads.
   - `Clock`: Controllable virtual clock for deterministic validation of the token-bucket rate limiter, 500 ms playlist grace window, 30-day cache TTL, and 429 backoff intervals.
-  - `MpvSink`: Captures outgoing IPC commands (`show-text` for OSD and `script-message surtr-log` for console messages).
+  - `MpvSink`: Captures outgoing IPC commands (`show-text` for OSD and one of four `script-message surtr-log[-level]` commands for console Diagnostics).
 - **Tested Behaviors**:
   - Full evaluation of the 49-file golden corpus verifying correct title, season resolution, absolute episode remapping, and candidate acceptance against recorded AniList payloads.
   - Rate-limiter token-bucket refill and seek-scrub coalescing with live timestamp re-sampling.

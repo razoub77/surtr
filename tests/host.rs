@@ -6,7 +6,7 @@
 //! answered, effects on the right sink, and a clean exit when mpv is gone.
 
 use surtr::clock::Clock;
-use surtr::daemon::{LiveState, Lookup, Miss, MpvEvent, OwnerClaim, Policy};
+use surtr::daemon::{Diagnostic, LiveState, Lookup, Miss, MpvEvent, OwnerClaim, Policy};
 use surtr::discord::DiscordCmd;
 use surtr::host::{self, Wiring};
 use surtr::mpv::Outbound;
@@ -171,8 +171,10 @@ async fn a_miss_is_logged_to_mpv_and_publishes_nothing() {
                 })
                 .unwrap();
 
+            let info = rig.mpv.recv().await.expect("the loaded-file info line");
+            assert_eq!(info, Outbound::Log(Diagnostic::info(FILE)));
             match rig.mpv.recv().await.expect("a console line") {
-                Outbound::Log(text) => assert!(text.contains("no Anime match"), "{text}"),
+                Outbound::Log(log) => assert!(log.text.contains("no Anime match"), "{log:?}"),
                 Outbound::ShowText { .. } => panic!("a fatal miss is console-only"),
             }
             assert!(rig.presence.try_recv().is_err(), "a Miss publishes nothing");

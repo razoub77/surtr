@@ -31,12 +31,21 @@ local function absolute_path(value)
         or value:match('^[\\/][\\/]')
 end
 
--- The daemon's only route to the visible console: it sends
--- `script-message surtr-log <text>` over the IPC pipe and Lua re-emits it
--- as a log error, which the console prefixes with `[surtr]`.
-mp.register_script_message('surtr-log', function(text)
-    msg.error(tostring(text))
-end)
+-- The daemon's only route to the visible console: four IPC script messages,
+-- one per level. Lua re-emits each through its matching `mp.msg` function;
+-- mpv adds the `[surtr]` script prefix and applies its own message-level
+-- filter; verbose lines need --msg-level=all=v.
+local log_routes = {
+    ['surtr-log'] = msg.info,
+    ['surtr-log-warn'] = msg.warn,
+    ['surtr-log-error'] = msg.error,
+    ['surtr-log-verbose'] = msg.verbose,
+}
+for name, emit in pairs(log_routes) do
+    mp.register_script_message(name, function(text)
+        emit(tostring(text))
+    end)
+end
 
 -- mpv >= 0.36 required: `user-data` is where the daemon later observes the
 -- session Toggle (mpv 0.36+ per spec).

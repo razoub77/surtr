@@ -73,6 +73,19 @@ async fn file_loaded_publishes_watching_presence_with_live_timestamps() {
 }
 
 #[tokio::test]
+async fn a_loaded_file_is_reported_at_info_level() {
+    let mut script = Script::scripted([matched()]);
+    let mut host = Host::new(true);
+    let mut runner = Runner::new(&mut script, host.claim(), PID, T0, policy(), Vec::new());
+
+    let file = r"D:\Anime\Frieren - 01.mkv";
+    host.load(&mut runner, file).await;
+
+    assert_eq!(host.infos(), vec![file.to_owned()]);
+    assert!(host.logs().is_empty(), "the load is not a failure");
+}
+
+#[tokio::test]
 async fn timestamps_scale_with_playback_speed() {
     let mut script = Script::scripted([Lookup::Matched(metadata("Frieren"))]);
     let mut host = Host::new(true);
@@ -737,7 +750,7 @@ async fn a_dormant_daemon_resolves_but_publishes_nothing() {
 
     host.load(&mut runner, r"D:\Anime\Frieren - 01.mkv").await;
 
-    assert!(host.effects.is_empty());
+    assert!(host.no_activity());
     assert_eq!(lookups.borrow().len(), 1, "it keeps observing");
     assert_eq!(
         runner.wake_at(),
@@ -779,7 +792,7 @@ async fn the_fresh_owner_publishes_live_state_after_the_settle() {
     // Loaded and playing while the window is unfocused: silent.
     host.observed = live(file, 600.0, 1440.0);
     host.load_as_observed(&mut runner, file, 600.0).await;
-    assert!(host.effects.is_empty(), "a non-Owner publishes nothing");
+    assert!(host.no_activity(), "a non-Owner publishes nothing");
 
     host.turn_and_record(&mut runner, MpvEvent::FocusChanged(true))
         .await;
@@ -787,7 +800,7 @@ async fn the_fresh_owner_publishes_live_state_after_the_settle() {
     host.timer(&mut runner).await;
     assert_eq!(seen.owner(), Some(PID));
     assert!(
-        host.effects.is_empty(),
+        host.no_activity(),
         "the previous Owner needs the settle to clear"
     );
     let wake = runner.wake_at().expect("a settle wake");
@@ -981,7 +994,7 @@ async fn a_claim_lost_during_the_settle_publishes_nothing() {
     host.timer(&mut runner).await;
 
     assert!(
-        host.effects.is_empty(),
+        host.no_activity(),
         "a lost claim neither publishes nor clears"
     );
 }
@@ -1016,14 +1029,14 @@ async fn toggle_off_during_a_lookup_stays_hidden_and_toggle_on_republishes_the_m
     };
     host.load_as_observed(&mut runner, file, 0.0).await;
     assert_eq!(lookups.borrow().len(), 1);
-    assert!(host.effects.is_empty());
+    assert!(host.no_activity());
 
     // Toggling back on before the retry comes due republishes nothing (no
     // Match), but the retry is still coming.
     host.observed.enabled = true;
     host.trigger(&mut runner, MpvEvent::Property(Property::Enabled(true)))
         .await;
-    assert!(host.effects.is_empty());
+    assert!(host.no_activity());
 
     // The retry resolves the Match at its due time and shows it.
     host.advance(30_000);
@@ -1117,7 +1130,7 @@ async fn toggle_on_cannot_claim_discord_for_a_dormant_daemon() {
     host.trigger(&mut runner, MpvEvent::Property(Property::Enabled(true)))
         .await;
 
-    assert!(host.effects.is_empty(), "only focus hands over ownership");
+    assert!(host.no_activity(), "only focus hands over ownership");
     assert_eq!(seen.owner(), None);
 }
 
@@ -1131,7 +1144,7 @@ async fn toggle_off_behind_a_dormant_daemon_emits_nothing() {
     host.trigger(&mut runner, MpvEvent::Property(Property::Enabled(false)))
         .await;
 
-    assert!(host.effects.is_empty(), "no card, no clear, no claim");
+    assert!(host.no_activity(), "no card, no clear, no claim");
 }
 
 // ---------------------------------------------------------------------------

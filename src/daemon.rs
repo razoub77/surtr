@@ -277,13 +277,60 @@ pub(crate) enum Input {
     Sampled(LiveState),
 }
 
+/// The severity of one console Diagnostic, and so the mpv script message the
+/// launcher receives (`surtr-log` ... `surtr-log-verbose`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Level {
+    Info,
+    Warn,
+    Error,
+    Verbose,
+}
+
+impl Level {
+    /// The IPC script message for this level; the launcher maps it to `mp.msg`.
+    pub fn script_message(self) -> &'static str {
+        match self {
+            Self::Info => "surtr-log",
+            Self::Warn => "surtr-log-warn",
+            Self::Error => "surtr-log-error",
+            Self::Verbose => "surtr-log-verbose",
+        }
+    }
+}
+
+/// One console Diagnostic: the level selects the launcher's `mp.msg` function,
+/// the text is what mpv prints after its `[surtr]` script prefix.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Diagnostic {
+    pub level: Level,
+    pub text: String,
+}
+
+impl Diagnostic {
+    pub fn new(level: Level, text: impl Into<String>) -> Self {
+        Self {
+            level,
+            text: text.into(),
+        }
+    }
+
+    pub fn info(text: impl Into<String>) -> Self {
+        Self::new(Level::Info, text)
+    }
+
+    pub fn error(text: impl Into<String>) -> Self {
+        Self::new(Level::Error, text)
+    }
+}
+
 /// One ordered command for the host to carry out.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Effect {
     Publish(Presence),
     Clear,
-    /// An mpv console line (`script-message surtr-log`).
-    Log(String),
+    /// One console Diagnostic, sent as a level-tagged script message.
+    Log(Diagnostic),
     /// A transient mpv OSD toast, visible for `seconds`.
     Osd {
         text: String,
@@ -780,13 +827,17 @@ impl<'a> Step<'a> {
         self.desired_publish = false;
         self.current = None;
 
+        // The one routine console line: mpv's `[surtr]` prefix plus the full
+        // path tells the user the Daemon saw this file at all.
+        out.effects.push(Effect::Log(Diagnostic::info(path.clone())));
+
         // Local files only (spec: Out of Scope — URL/stream playback), and
         // only inside an Anime Root: everything else yields no Presence and
         // triggers no lookup, with a console line for the user.
         if path.contains("://") || !self.eligible(&path) {
-            out.effects.push(Effect::Log(format!(
+            out.effects.push(Effect::Log(Diagnostic::error(format!(
                 "surtr: skipping non-local path {path}"
-            )));
+            ))));
             self.request_clear(now);
             return;
         }
@@ -856,16 +907,17 @@ impl<'a> Step<'a> {
         match miss {
             Miss::Repairable { key } => {
                 let text = format!("Surtr: no Anime match for \"{key}\"");
-                out.effects.push(Effect::Log(text.clone()));
+                out.effects
+                    .push(Effect::Log(Diagnostic::error(text.clone())));
                 out.effects.push(Effect::Osd {
                     text,
                     seconds: self.policy.miss_osd_seconds,
                 });
             }
             Miss::Fatal { reason } => {
-                out.effects.push(Effect::Log(format!(
+                out.effects.push(Effect::Log(Diagnostic::error(format!(
                     "surtr: no Anime match ({reason}): {path}"
-                )));
+                ))));
             }
         }
     }
@@ -1474,7 +1526,14 @@ mod tests {
             }),
         );
 
-        assert_eq!(effects, vec![Effect::Sample], "a load admits a sample");
+        assert_eq!(
+            effects,
+            vec![
+                Effect::Log(Diagnostic::info(r"D:\Anime\Frieren - 01.mkv")),
+                Effect::Sample
+            ],
+            "a load reports the file and admits a sample"
+        );
         assert_eq!(
             host.outcomes.last().unwrap().wake_at,
             Some(T0 + CLAIM_POLL_MS),
@@ -1508,7 +1567,11 @@ mod tests {
         );
         assert_eq!(
             effects,
-            vec![Effect::Clear, Effect::Sample],
+            vec![
+                Effect::Log(Diagnostic::info(r"D:\Anime\Frieren - 02.mkv")),
+                Effect::Clear,
+                Effect::Sample
+            ],
             "the stale card is blanked in the same frame the new sample is asked"
         );
 

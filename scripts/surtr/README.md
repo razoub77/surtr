@@ -142,10 +142,11 @@ With Discord running and an episode under one of your folders ready:
 4. Quit mpv. The card disappears.
 
 That is the whole walkthrough. If nothing appears, open mpv's console with the
-backtick key (`` ` ``) and look for lines beginning `[surtr]`; each one says what
-went wrong, and [Troubleshooting](#5-troubleshooting) lists the usual causes.
-Every mpv start prints one `Surtr: watching for playback` line, so an empty
-console is itself a clue: Surtr never loaded.
+backtick key (`` ` ``) and look for lines beginning `[surtr]`; each loaded file
+prints its full path there, and [Troubleshooting](#5-troubleshooting) lists the
+usual causes for error lines. Every mpv start also prints one
+`Surtr: watching for playback` line, so an empty console is itself a clue:
+Surtr never loaded.
 
 ## 5. Troubleshooting
 

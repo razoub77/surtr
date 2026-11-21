@@ -13,7 +13,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, ReadHalf, WriteHalf};
 use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use tokio::sync::{mpsc, oneshot};
 
-use surtr::daemon::{LiveState, MpvEvent, Property};
+use surtr::daemon::{Diagnostic, Level, LiveState, MpvEvent, Property};
 use surtr::mpv::{run_session, Outbound, SessionEnd};
 
 /// A listening pipe the daemon can connect to, mirroring mpv's byte-mode
@@ -303,16 +303,24 @@ async fn outbound_diagnostics_reach_mpv_as_script_message_and_show_text() {
         );
     }
 
-    outbound_tx
-        .send(Outbound::Log("surtr: skipping non-local path https://x".into()))
-        .unwrap();
-    let command = next_command(&mut reader)
-        .await
-        .expect("the console line on the wire");
-    assert_eq!(
-        command["command"],
-        serde_json::json!(["script-message", "surtr-log", "surtr: skipping non-local path https://x"])
-    );
+    let text = "surtr: skipping non-local path https://x";
+    for (level, message) in [
+        (Level::Info, "surtr-log"),
+        (Level::Warn, "surtr-log-warn"),
+        (Level::Error, "surtr-log-error"),
+        (Level::Verbose, "surtr-log-verbose"),
+    ] {
+        outbound_tx
+            .send(Outbound::Log(Diagnostic::new(level, text)))
+            .unwrap();
+        let command = next_command(&mut reader)
+            .await
+            .expect("the console line on the wire");
+        assert_eq!(
+            command["command"],
+            serde_json::json!(["script-message", message, text])
+        );
+    }
 
     outbound_tx
         .send(Outbound::ShowText {

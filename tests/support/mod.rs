@@ -13,8 +13,8 @@ use std::rc::Rc;
 
 use surtr::anilist::{Candidate, Titles};
 use surtr::daemon::{
-    Effect, LiveState, Lookup, Metadata, MetadataClient, MpvEvent, OwnerClaim, Presence, Runner,
-    CLAIM_DEBOUNCE_MS, CLAIM_SETTLE_MS,
+    Effect, Level, LiveState, Lookup, Metadata, MetadataClient, MpvEvent, OwnerClaim, Presence,
+    Runner, CLAIM_DEBOUNCE_MS, CLAIM_SETTLE_MS,
 };
 
 /// The instant every test Daemon starts at.
@@ -322,14 +322,35 @@ impl Host {
             .collect()
     }
 
-    pub fn logs(&self) -> Vec<String> {
+    /// Console lines at one level; the default error view is `logs()`.
+    pub fn logs_at(&self, level: Level) -> Vec<String> {
         self.effects
             .iter()
             .filter_map(|effect| match effect {
-                Effect::Log(text) => Some(text.clone()),
+                Effect::Log(log) if log.level == level => Some(log.text.clone()),
                 _ => None,
             })
             .collect()
+    }
+
+    /// Failure lines only: routine info lines must not disturb these vectors.
+    pub fn logs(&self) -> Vec<String> {
+        self.logs_at(Level::Error)
+    }
+
+    pub fn infos(&self) -> Vec<String> {
+        self.logs_at(Level::Info)
+    }
+
+    /// No Presence, OSD or sample traffic; routine console Diagnostics don't
+    /// count as activity for the silence assertions.
+    pub fn no_activity(&self) -> bool {
+        !self.effects.iter().any(|effect| {
+            matches!(
+                effect,
+                Effect::Publish(_) | Effect::Clear | Effect::Osd { .. } | Effect::Sample
+            )
+        })
     }
 
     pub fn osds(&self) -> Vec<(String, u64)> {

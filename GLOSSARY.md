@@ -41,6 +41,10 @@ _Avoid_: identification, lookup
 The reason a loaded file resolved to no Match. Repairable — one Override line could plausibly produce a card — earns the OSD and a console line; fatal misses stay console-only, and a failed request reports nothing.
 _Avoid_: lookup failure, no result
 
+**Diagnostic**:
+One level-tagged console line the Daemon sends to mpv over IPC: info for a loaded file, error for every failure the user used to see. The launcher routes it to the matching `mp.msg` function; mpv adds the `[surtr]` prefix.
+_Avoid_: log line, status message
+
 **Lookup Answer**:
 What one lookup of a Release Filename returns: a Match, a Miss, a rate-limit delay (the lookup is deferred and retried once after that delay), or no answer (a failed request — no Presence, no report). Exactly one of these, per lookup.
 _Avoid_: lookup result
