@@ -195,10 +195,10 @@ impl<S: MediaSource, C: Clock> MediaSource for Cached<S, C> {
     fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.search(query, now) {
-            self.trace_verbose(format!("surtr: cache: search \"{query}\": hit"));
+            self.trace_verbose(format!("cache: search \"{query}\": hit"));
             return Ok(cached);
         }
-        self.trace_verbose(format!("surtr: cache: search \"{query}\": live fetch"));
+        self.trace_verbose(format!("cache: search \"{query}\": live fetch"));
         let result = self.inner.search(query)?;
         self.cache.store_search(query, result.clone(), now);
         Ok(result)
@@ -207,10 +207,10 @@ impl<S: MediaSource, C: Clock> MediaSource for Cached<S, C> {
     fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.sequels(id, now) {
-            self.trace_verbose(format!("surtr: cache: relations id={id}: hit"));
+            self.trace_verbose(format!("cache: relations id={id}: hit"));
             return Ok(cached);
         }
-        self.trace_verbose(format!("surtr: cache: relations id={id}: live fetch"));
+        self.trace_verbose(format!("cache: relations id={id}: live fetch"));
         let result = self.inner.sequels(id)?;
         self.cache.store_sequels(id, result.clone(), now);
         Ok(result)
@@ -219,10 +219,10 @@ impl<S: MediaSource, C: Clock> MediaSource for Cached<S, C> {
     fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.entry(id, now) {
-            self.trace_verbose(format!("surtr: cache: entry id={id}: hit"));
+            self.trace_verbose(format!("cache: entry id={id}: hit"));
             return Ok(cached);
         }
-        self.trace_verbose(format!("surtr: cache: entry id={id}: live fetch"));
+        self.trace_verbose(format!("cache: entry id={id}: live fetch"));
         let result = self.inner.entry(id)?;
         self.cache.store_entry(id, result.clone(), now);
         Ok(result)

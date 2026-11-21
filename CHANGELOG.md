@@ -13,6 +13,9 @@
 
 ### Changed
 
+- Console Diagnostics no longer repeat `surtr:` in their text; mpv's `[surtr]`
+  prefix is the only tag. A loaded file prints `playing: <full path>`. OSD
+  notifications keep `Surtr:` because they have no mpv prefix.
 - Console Diagnostics now carry a level from the Daemon to mpv: four IPC script
   messages (`surtr-log`, `surtr-log-warn`, `surtr-log-error`,
   `surtr-log-verbose`) map to the matching `mp.msg` functions. Every previous

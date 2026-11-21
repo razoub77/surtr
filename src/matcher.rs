@@ -195,10 +195,10 @@ impl<S: MediaSource> Matcher<S> {
     fn failure_warning(error: SourceError, label: &str) -> Diagnostic {
         match error {
             SourceError::Unavailable => {
-                Diagnostic::warn(format!("surtr: AniList request failed for {label}"))
+                Diagnostic::warn(format!("AniList request failed for {label}"))
             }
             SourceError::RateLimited(delay) => Diagnostic::warn(format!(
-                "surtr: AniList throttled {label}; retrying in {}s",
+                "AniList throttled {label}; retrying in {}s",
                 delay as f64 / 1_000.0
             )),
         }
@@ -214,7 +214,7 @@ impl<S: MediaSource> Matcher<S> {
 
     /// One step of an Absolute Episode walk through SEQUEL relations.
     fn trace_walk(&mut self, text: impl Into<String>) {
-        self.trace_verbose(format!("surtr: absolute walk: {}", text.into()));
+        self.trace_verbose(format!("absolute walk: {}", text.into()));
     }
 
     /// The deep view of a scored result set: the top three Candidates with
@@ -232,14 +232,14 @@ impl<S: MediaSource> Matcher<S> {
             })
             .collect::<Vec<_>>()
             .join(", ");
-        self.trace_verbose(format!("surtr: top Candidates for \"{query}\": [{top}]"));
+        self.trace_verbose(format!("top Candidates for \"{query}\": [{top}]"));
     }
 
     /// The Candidate that won this search, with the scores that ranked it.
     fn trace_chosen(&mut self, candidate: &Candidate, scores: scorer::Scores) {
         let title = candidate_title(candidate, self.title_language).unwrap_or_default();
         self.trace(format!(
-            "surtr: chose Candidate id={} title=\"{title}\" score={:.3} runner-up={:.3}",
+            "chose Candidate id={} title=\"{title}\" score={:.3} runner-up={:.3}",
             candidate.id, scores.best, scores.runner_up
         ));
     }
@@ -251,7 +251,7 @@ impl<S: MediaSource> Matcher<S> {
             None => "none".to_owned(),
         };
         self.trace(format!(
-            "surtr: Match id={} title=\"{}\" episode={episode}",
+            "Match id={} title=\"{}\" episode={episode}",
             metadata.id, metadata.title
         ));
     }
@@ -288,7 +288,7 @@ impl<S: MediaSource> Matcher<S> {
             }
         };
         self.trace(format!(
-            "surtr: parsed Release Filename: title=\"{}\", season={}, episode={}, movie={}, year={}",
+            "parsed Release Filename: title=\"{}\", season={}, episode={}, movie={}, year={}",
             parsed.title,
             display_optional(parsed.season),
             display_optional(parsed.episode),
@@ -335,7 +335,7 @@ impl<S: MediaSource> Matcher<S> {
             if let Some(id) = self.overrides.id(query) {
                 let answer = match self.entry(id) {
                     Ok(candidate) => {
-                        self.trace(format!("surtr: override \"{query}\" -> id {id}"));
+                        self.trace(format!("override \"{query}\" -> id {id}"));
                         self.resolve_override(&candidate, &parsed)
                     }
                     Err(SourceError::RateLimited(delay)) => Lookup::RateLimited(delay),
@@ -360,7 +360,7 @@ impl<S: MediaSource> Matcher<S> {
                 }
             };
             self.trace(format!(
-                "surtr: search \"{query}\" -> {} {}",
+                "search \"{query}\" -> {} {}",
                 candidates.len(),
                 candidate_noun(candidates.len())
             ));
@@ -440,7 +440,7 @@ impl<S: MediaSource> Matcher<S> {
             if corroborate && season > 1 {
                 let found = corroborates(candidate, season);
                 self.trace_verbose(format!(
-                    "surtr: season marker {season} in titles or synonyms of id={}: {}",
+                    "season marker {season} in titles or synonyms of id={}: {}",
                     candidate.id,
                     if found { "found" } else { "not found" }
                 ));
@@ -453,7 +453,7 @@ impl<S: MediaSource> Matcher<S> {
             if let (Some(episode), Some(total)) = (parsed.episode, candidate.episodes) {
                 if episode > total {
                     self.trace_verbose(format!(
-                        "surtr: episode {episode} exceeds Total Episodes {total} in id={}: season marker {season} contradicted",
+                        "episode {episode} exceeds Total Episodes {total} in id={}: season marker {season} contradicted",
                         candidate.id
                     ));
                     return Lookup::Missed(Miss::Repairable { key });

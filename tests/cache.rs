@@ -212,19 +212,19 @@ fn relations_and_entries_are_cached_by_id() {
         vec![
             (
                 Level::Verbose,
-                "surtr: cache: relations id=1: live fetch".to_owned()
+                "cache: relations id=1: live fetch".to_owned()
             ),
             (
                 Level::Verbose,
-                "surtr: cache: relations id=1: hit".to_owned()
+                "cache: relations id=1: hit".to_owned()
             ),
             (
                 Level::Verbose,
-                "surtr: cache: entry id=108268: live fetch".to_owned()
+                "cache: entry id=108268: live fetch".to_owned()
             ),
             (
                 Level::Verbose,
-                "surtr: cache: entry id=108268: hit".to_owned()
+                "cache: entry id=108268: hit".to_owned()
             ),
         ]
     );

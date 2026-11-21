@@ -64,7 +64,7 @@ async fn a_failed_request_warns_with_the_query_and_shows_no_osd_or_presence() {
 
     assert_eq!(
         host.logs_at(Level::Warn),
-        vec![r#"surtr: AniList request failed for query "monster""#],
+        vec![r#"AniList request failed for query "monster""#],
         "the warning names the query that failed"
     );
     assert!(host.logs().is_empty(), "no Miss line reporting");
@@ -89,7 +89,7 @@ async fn a_429_warns_with_the_delay_then_the_spent_retry_stays_silent() {
 
     assert_eq!(
         host.logs_at(Level::Warn),
-        vec![r#"surtr: AniList throttled query "monster"; retrying in 30s"#],
+        vec![r#"AniList throttled query "monster"; retrying in 30s"#],
         "the warning names the Retry-After delay Surtr honours"
     );
     assert!(host.osds().is_empty(), "a throttle is not a Miss");
@@ -124,7 +124,7 @@ async fn a_fractional_retry_after_is_reported_in_seconds() {
 
     assert_eq!(
         host.logs_at(Level::Warn),
-        vec![r#"surtr: AniList throttled query "monster"; retrying in 1.5s"#],
+        vec![r#"AniList throttled query "monster"; retrying in 1.5s"#],
         "the delay is seconds, not milliseconds"
     );
 }

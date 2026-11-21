@@ -56,7 +56,7 @@ if mp.get_property_native('user-data') == nil then
 end
 
 if o.anime_roots == '' then
-    msg.warn('surtr: no anime_roots configured; every local file is eligible '
+    msg.warn('no anime_roots configured; every local file is eligible '
         .. '(script-opts/surtr.conf)')
 end
 
@@ -71,7 +71,7 @@ local why = ''
 if o.binary_path ~= '' then
     local override = trim(o.binary_path)
     if not absolute_path(override) then
-        msg.error('surtr: binary_path "' .. override .. '" is not absolute; it '
+        msg.error('binary_path "' .. override .. '" is not absolute; it '
             .. 'must start with a drive letter or ~~ (script-opts/surtr.conf). '
             .. 'Surtr disabled.')
         return
@@ -85,7 +85,7 @@ end
 
 local info = binary and utils.file_info(binary)
 if not info or info.is_dir then
-    msg.error('surtr: surtr.exe not found at "' .. tostring(binary) .. '"' .. why
+    msg.error('surtr.exe not found at "' .. tostring(binary) .. '"' .. why
         .. '; Surtr disabled. Re-extract the zip, or set binary_path in '
         .. 'script-opts/surtr.conf.')
     return
@@ -100,13 +100,13 @@ if overrides_setting == '' then
     overrides_setting = '~~/script-opts/surtr-overrides.json'
 end
 if not absolute_path(overrides_setting) then
-    msg.error('surtr: overrides_path "' .. overrides_setting .. '" is not '
+    msg.error('overrides_path "' .. overrides_setting .. '" is not '
         .. 'absolute; it must start with a drive letter or ~~ '
         .. '(script-opts/surtr.conf). Overrides disabled.')
 else
     overrides_arg = mp.command_native({ 'expand-path', overrides_setting })
     if not overrides_arg or overrides_arg == '' then
-        msg.error('surtr: could not expand overrides_path "' .. overrides_setting
+        msg.error('could not expand overrides_path "' .. overrides_setting
             .. '" (script-opts/surtr.conf). Overrides disabled.')
         overrides_arg = nil
     end
@@ -158,4 +158,4 @@ mp.add_key_binding(o.toggle_key, 'surtr-toggle', toggle)
 utils.subprocess_detached({ args = args, playback_only = false })
 -- `info`, not `verbose`: mpv hides verbose lines unless the user starts it
 -- with --msg-level, so a silent failure would otherwise print nothing at all.
-msg.info('Surtr: watching for playback (IPC ' .. pipe .. ')')
+msg.info('watching for playback (IPC ' .. pipe .. ')')

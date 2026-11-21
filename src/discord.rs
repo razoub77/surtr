@@ -215,7 +215,7 @@ pub async fn run_publisher(
                         last_report = Some(now);
                         if let Some(tx) = &diagnostics {
                             let _ = tx.send(Outbound::Log(Diagnostic::error(
-                                "surtr: Discord is not accepting a presence connection \
+                                "Discord is not accepting a presence connection \
                                  (no answer or refusal on every pipe). Check that the \
                                  Discord app is running and signed in, and that \
                                  SURTR_CLIENT_ID names a registered application \
@@ -281,7 +281,7 @@ pub async fn run_publisher(
                             if let Some(message) = error_message(&payload) {
                                 if let Some(tx) = &diagnostics {
                                     let _ = tx.send(Outbound::Log(Diagnostic::error(
-                                        format!("surtr: Discord rejected the presence update: {message}")
+                                        format!("Discord rejected the presence update: {message}")
                                     )));
                                 }
                             }

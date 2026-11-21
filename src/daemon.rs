@@ -837,16 +837,18 @@ impl<'a> Step<'a> {
         self.desired_publish = false;
         self.current = None;
 
-        // The one routine console line: mpv's `[surtr]` prefix plus the full
-        // path tells the user the Daemon saw this file at all.
-        out.effects.push(Effect::Log(Diagnostic::info(path.clone())));
+        // The one routine console line: mpv's `[surtr]` prefix plus `playing:`
+        // tells the user the Daemon saw this file at all.
+        out.effects.push(Effect::Log(Diagnostic::info(format!(
+            "playing: {path}"
+        ))));
 
         // Local files only (spec: Out of Scope — URL/stream playback), and
         // only inside an Anime Root: everything else yields no Presence and
         // triggers no lookup, with a console line for the user.
         if path.contains("://") || !self.eligible(&path) {
             out.effects.push(Effect::Log(Diagnostic::error(format!(
-                "surtr: skipping non-local path {path}"
+                "skipping non-local path {path}"
             ))));
             self.request_clear(now);
             return;
@@ -928,17 +930,17 @@ impl<'a> Step<'a> {
         }
         match miss {
             Miss::Repairable { key } => {
-                let text = format!("Surtr: no Anime match for \"{key}\"");
-                out.effects
-                    .push(Effect::Log(Diagnostic::error(text.clone())));
+                out.effects.push(Effect::Log(Diagnostic::error(format!(
+                    "no Anime match for \"{key}\""
+                ))));
                 out.effects.push(Effect::Osd {
-                    text,
+                    text: format!("Surtr: no Anime match for \"{key}\""),
                     seconds: self.policy.miss_osd_seconds,
                 });
             }
             Miss::Fatal { reason } => {
                 out.effects.push(Effect::Log(Diagnostic::error(format!(
-                    "surtr: no Anime match ({reason}): {path}"
+                    "no Anime match ({reason}): {path}"
                 ))));
             }
         }
@@ -1551,7 +1553,7 @@ mod tests {
         assert_eq!(
             effects,
             vec![
-                Effect::Log(Diagnostic::info(r"D:\Anime\Frieren - 01.mkv")),
+                Effect::Log(Diagnostic::info(r"playing: D:\Anime\Frieren - 01.mkv")),
                 Effect::Sample
             ],
             "a load reports the file and admits a sample"
@@ -1590,7 +1592,7 @@ mod tests {
         assert_eq!(
             effects,
             vec![
-                Effect::Log(Diagnostic::info(r"D:\Anime\Frieren - 02.mkv")),
+                Effect::Log(Diagnostic::info(r"playing: D:\Anime\Frieren - 02.mkv")),
                 Effect::Clear,
                 Effect::Sample
             ],

@@ -303,7 +303,7 @@ async fn outbound_diagnostics_reach_mpv_as_script_message_and_show_text() {
         );
     }
 
-    let text = "surtr: skipping non-local path https://x";
+    let text = "skipping non-local path https://x";
     for (level, message) in [
         (Level::Info, "surtr-log"),
         (Level::Warn, "surtr-log-warn"),

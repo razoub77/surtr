@@ -34,7 +34,7 @@ impl Overrides {
             Err(err) => (
                 Self::none(),
                 vec![format!(
-                    "surtr: cannot read overrides at {}: {err}",
+                    "cannot read overrides at {}: {err}",
                     path.display()
                 )],
             ),
@@ -62,7 +62,7 @@ impl Overrides {
             Ok(text) => text,
             Err(err) => {
                 messages.push(format!(
-                    "surtr: cannot read overrides at {}: {err}",
+                    "cannot read overrides at {}: {err}",
                     target.display()
                 ));
                 return (Self::none(), messages);
@@ -73,7 +73,7 @@ impl Overrides {
                 Ok(text) => text,
                 Err(err) => {
                     messages.push(format!(
-                        "surtr: cannot read overrides at {}: {err}",
+                        "cannot read overrides at {}: {err}",
                         path.display()
                     ));
                     None
@@ -112,7 +112,7 @@ impl Overrides {
                 return (
                     Self::none(),
                     vec![format!(
-                        "surtr: ignoring overrides at {label}: invalid JSON: {err}"
+                        "ignoring overrides at {label}: invalid JSON: {err}"
                     )],
                 )
             }
@@ -121,7 +121,7 @@ impl Overrides {
             return (
                 Self::none(),
                 vec![format!(
-                    "surtr: ignoring overrides at {label}: top level must be an object"
+                    "ignoring overrides at {label}: top level must be an object"
                 )],
             );
         };
@@ -133,7 +133,7 @@ impl Overrides {
                     ids.insert(scorer::normalize(key), id);
                 }
                 None => messages.push(format!(
-                    "surtr: ignoring overrides entry {key:?}: value must be a positive integer AniList id"
+                    "ignoring overrides entry {key:?}: value must be a positive integer AniList id"
                 )),
             }
         }
@@ -207,7 +207,7 @@ fn move_legacy(
     mut messages: Vec<String>,
 ) -> (Overrides, Vec<String>) {
     if let Err(reason) = valid_object(text, &legacy.display().to_string()) {
-        messages.push(format!("surtr: {reason}; legacy file left unchanged"));
+        messages.push(format!("{reason}; legacy file left unchanged"));
         return (Overrides::none(), messages);
     }
 
@@ -218,7 +218,7 @@ fn move_legacy(
                 Err(err) => format!("; could not remove legacy file: {err}"),
             };
             messages.push(format!(
-                "surtr: moved overrides from {} to {}{removal}",
+                "moved overrides from {} to {}{removal}",
                 legacy.display(),
                 target.display()
             ));
@@ -227,7 +227,7 @@ fn move_legacy(
         }
         Err(err) => {
             messages.push(format!(
-                "surtr: cannot move overrides from {} to {}: {err}; reading the legacy file",
+                "cannot move overrides from {} to {}: {err}; reading the legacy file",
                 legacy.display(),
                 target.display()
             ));
@@ -254,17 +254,17 @@ fn merge_legacy(
     let (legacy_object, target_object) = match (legacy_result, target_result) {
         (Ok(legacy), Ok(target)) => (legacy, target),
         (Err(reason), Ok(_)) => {
-            messages.push(format!("surtr: {reason}; files left unchanged"));
+            messages.push(format!("{reason}; files left unchanged"));
             let overrides = parsed(&mut messages, target_text, &target_label);
             return (overrides, messages);
         }
         (Ok(_), Err(reason)) => {
-            messages.push(format!("surtr: {reason}; files left unchanged"));
+            messages.push(format!("{reason}; files left unchanged"));
             return (Overrides::none(), messages);
         }
         (Err(legacy_reason), Err(target_reason)) => {
             messages.push(format!(
-                "surtr: cannot merge overrides: {target_reason}; {legacy_reason}; files left unchanged"
+                "cannot merge overrides: {target_reason}; {legacy_reason}; files left unchanged"
             ));
             return (Overrides::none(), messages);
         }
@@ -276,7 +276,7 @@ fn merge_legacy(
     let text = serde_json::to_string_pretty(&Value::Object(merged)).unwrap_or_default() + "\n";
     if let Err(err) = write_atomic(target, &text) {
         messages.push(format!(
-            "surtr: cannot write merged overrides to {}: {err}; leaving the legacy file",
+            "cannot write merged overrides to {}: {err}; leaving the legacy file",
             target.display()
         ));
         let overrides = parsed(&mut messages, target_text, &target_label);
@@ -284,7 +284,7 @@ fn merge_legacy(
     }
     if let Err(err) = remove_legacy(legacy) {
         messages.push(format!(
-            "surtr: merged overrides but could not remove legacy file {}: {err}",
+            "merged overrides but could not remove legacy file {}: {err}",
             legacy.display()
         ));
     }
@@ -316,7 +316,7 @@ fn merge_objects(
             let current = &merged[existing];
             if current != &value {
                 messages.push(format!(
-                    "surtr: overrides key {key:?} kept id {current} from {target_label}; {legacy_label} had {value}"
+                    "overrides key {key:?} kept id {current} from {target_label}; {legacy_label} had {value}"
                 ));
             }
         } else {

@@ -81,7 +81,7 @@ async fn a_loaded_file_is_reported_at_info_level() {
     let file = r"D:\Anime\Frieren - 01.mkv";
     host.load(&mut runner, file).await;
 
-    assert_eq!(host.infos(), vec![file.to_owned()]);
+    assert_eq!(host.infos(), vec![format!("playing: {file}")]);
     assert!(host.logs().is_empty(), "the load is not a failure");
 }
 
@@ -206,12 +206,12 @@ async fn non_local_path_is_skipped_with_a_console_line() {
     assert!(host.osds().is_empty(), "a URL never shows an OSD");
     assert_eq!(
         host.infos(),
-        vec!["https://example.com/stream.m3u8".to_owned()],
+        vec!["playing: https://example.com/stream.m3u8".to_owned()],
         "the loaded path is reported before it is skipped"
     );
     assert_eq!(
         host.logs(),
-        vec!["surtr: skipping non-local path https://example.com/stream.m3u8".to_owned()]
+        vec!["skipping non-local path https://example.com/stream.m3u8".to_owned()]
     );
     assert!(lookups.borrow().is_empty(), "a URL is never looked up");
 }
@@ -251,14 +251,14 @@ async fn files_outside_the_anime_roots_produce_no_presence_and_no_lookup() {
     assert_eq!(
         host.infos(),
         vec![
-            r"D:\Anime\Frieren - 01.mkv".to_owned(),
-            file.to_owned(),
+            format!("playing: {}", r"D:\Anime\Frieren - 01.mkv"),
+            format!("playing: {file}"),
         ],
         "both paths are reported at info level before either is skipped"
     );
     assert_eq!(
         host.logs(),
-        vec![format!("surtr: skipping non-local path {file}")],
+        vec![format!("skipping non-local path {file}")],
         "the user still gets the console line"
     );
 }
@@ -1241,7 +1241,7 @@ async fn an_out_of_root_file_is_reported_once_and_never_retried() {
     // nothing up.
     let file = r"D:\Anime2\Show - 01.mkv";
     host.load(&mut runner, file).await;
-    let skip_line = format!("surtr: skipping non-local path {file}");
+    let skip_line = format!("skipping non-local path {file}");
     assert_eq!(
         host.logs(),
         vec![skip_line.clone()],
@@ -1340,7 +1340,10 @@ async fn a_repairable_miss_shows_one_osd_and_one_console_line_per_file() {
     // The exact override key, copy-pasteable, quotes included, for 5 s.
     let text = r#"Surtr: no Anime match for "honzuki no gekokujou""#;
     assert_eq!(host.osds(), vec![(text.to_owned(), 5)]);
-    assert_eq!(host.logs(), vec![text.to_owned()]);
+    assert_eq!(
+        host.logs(),
+        vec![r#"no Anime match for "honzuki no gekokujou""#.to_owned()]
+    );
 
     // Seek, pause and a Toggle-on never repeat it while the file is loaded.
     host.time_pos = Some(600.0);
@@ -1370,7 +1373,7 @@ async fn the_miss_osd_duration_is_the_policy_value() {
 
     assert_eq!(
         host.logs(),
-        vec![r#"Surtr: no Anime match for "frieren""#.to_owned()],
+        vec![r#"no Anime match for "frieren""#.to_owned()],
         "a repairable miss is a console line, then the OSD"
     );
     assert_eq!(
@@ -1422,7 +1425,7 @@ async fn a_fatal_miss_logs_a_console_line_but_never_an_osd() {
     assert_eq!(
         host.logs(),
         vec![format!(
-            "surtr: no Anime match (batch range or multi-episode file): {file}"
+            "no Anime match (batch range or multi-episode file): {file}"
         )]
     );
 }

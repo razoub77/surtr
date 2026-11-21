@@ -130,10 +130,10 @@ async fn a_cache_hit_is_named_in_the_verbose_trace() {
     assert_eq!(
         host.logs_at(Level::Verbose),
         vec![
-            r#"surtr: cache: search "monster": live fetch"#.to_owned(),
-            r#"surtr: top Candidates for "monster": [id=19 title="Monster" score=1.000]"#.to_owned(),
-            r#"surtr: cache: search "monster": hit"#.to_owned(),
-            r#"surtr: top Candidates for "monster": [id=19 title="Monster" score=1.000]"#.to_owned(),
+            r#"cache: search "monster": live fetch"#.to_owned(),
+            r#"top Candidates for "monster": [id=19 title="Monster" score=1.000]"#.to_owned(),
+            r#"cache: search "monster": hit"#.to_owned(),
+            r#"top Candidates for "monster": [id=19 title="Monster" score=1.000]"#.to_owned(),
         ]
     );
     assert!(host.osds().is_empty());
@@ -164,7 +164,7 @@ async fn a_scored_result_set_lists_its_top_three_candidates_verbosely() {
     assert_eq!(
         host.logs_at(Level::Verbose),
         vec![
-            r#"surtr: top Candidates for "show": [id=1 title="Show" score=1.000, id=2 title="Show Special" score=0.870, id=3 title="Show Alpha" score=0.870]"#.to_owned(),
+            r#"top Candidates for "show": [id=1 title="Show" score=1.000, id=2 title="Show Special" score=0.870, id=3 title="Show Alpha" score=0.870]"#.to_owned(),
         ]
     );
     assert!(host.osds().is_empty());
@@ -190,9 +190,9 @@ async fn season_corroboration_names_the_marker_check() {
     assert_eq!(
         host.logs_at(Level::Verbose),
         vec![
-            r#"surtr: top Candidates for "show season 2": [id=2 title="Show 2nd Season" score=1.000]"#
+            r#"top Candidates for "show season 2": [id=2 title="Show 2nd Season" score=1.000]"#
                 .to_owned(),
-            r#"surtr: season marker 2 in titles or synonyms of id=2: found"#.to_owned(),
+            r#"season marker 2 in titles or synonyms of id=2: found"#.to_owned(),
         ]
     );
     assert!(host.osds().is_empty());
@@ -222,18 +222,18 @@ async fn an_absolute_episode_walk_traces_root_remaining_and_stop() {
     assert_eq!(
         host.logs_at(Level::Verbose),
         vec![
-            r#"surtr: top Candidates for "show": [id=1 title="Show" score=1.000]"#.to_owned(),
-            r#"surtr: absolute walk: root id=1 total=24 episode=50 remaining=26"#.to_owned(),
-            r#"surtr: absolute walk: visited continuity id=4 format=MOVIE (budget=1)"#.to_owned(),
-            r#"surtr: absolute walk: counted season id=2 total=24: remaining=2 (budget=2)"#
+            r#"top Candidates for "show": [id=1 title="Show" score=1.000]"#.to_owned(),
+            r#"absolute walk: root id=1 total=24 episode=50 remaining=26"#.to_owned(),
+            r#"absolute walk: visited continuity id=4 format=MOVIE (budget=1)"#.to_owned(),
+            r#"absolute walk: counted season id=2 total=24: remaining=2 (budget=2)"#
                 .to_owned(),
-            r#"surtr: absolute walk: stop: containment in id=3 at episode 2/12 (budget=3)"#
+            r#"absolute walk: stop: containment in id=3 at episode 2/12 (budget=3)"#
                 .to_owned(),
         ]
     );
     assert_eq!(
         host.infos().last().map(String::as_str),
-        Some(r#"surtr: Match id=3 title="Show 3rd Season" episode="Episode 2/12""#)
+        Some(r#"Match id=3 title="Show 3rd Season" episode="Episode 2/12""#)
     );
     assert!(host.osds().is_empty());
 }
@@ -258,12 +258,12 @@ async fn a_tie_resolved_by_the_root_season_keeps_its_decision_trace() {
     assert_eq!(
         host.logs_at(Level::Verbose),
         vec![
-            r#"surtr: top Candidates for "show": [id=1 title="Show Alpha" score=0.870, id=2 title="Show Beta" score=0.870]"#.to_owned(),
+            r#"top Candidates for "show": [id=1 title="Show Alpha" score=0.870, id=2 title="Show Beta" score=0.870]"#.to_owned(),
         ]
     );
     assert_eq!(
         host.infos().last().map(String::as_str),
-        Some(r#"surtr: Match id=1 title="Show Alpha" episode="Episode 1/12""#)
+        Some(r#"Match id=1 title="Show Alpha" episode="Episode 1/12""#)
     );
     assert!(host.osds().is_empty());
 }
@@ -287,7 +287,7 @@ async fn an_episode_beyond_the_match_total_names_the_contradiction() {
 
     assert_eq!(
         host.logs_at(Level::Verbose).last().map(String::as_str),
-        Some("surtr: episode 5 exceeds Total Episodes 3 in id=2: season marker 2 contradicted")
+        Some("episode 5 exceeds Total Episodes 3 in id=2: season marker 2 contradicted")
     );
     assert!(host
         .osds()

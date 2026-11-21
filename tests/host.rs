@@ -172,7 +172,10 @@ async fn a_miss_is_logged_to_mpv_and_publishes_nothing() {
                 .unwrap();
 
             let info = rig.mpv.recv().await.expect("the loaded-file info line");
-            assert_eq!(info, Outbound::Log(Diagnostic::info(FILE)));
+            assert_eq!(
+        info,
+        Outbound::Log(Diagnostic::info(format!("playing: {FILE}")))
+    );
             match rig.mpv.recv().await.expect("a console line") {
                 Outbound::Log(log) => assert!(log.text.contains("no Anime match"), "{log:?}"),
                 Outbound::ShowText { .. } => panic!("a fatal miss is console-only"),

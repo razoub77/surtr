@@ -531,12 +531,12 @@ async fn the_lookup_trace_pins_the_full_info_block_for_a_recorded_fixture() {
     assert_eq!(
         host.infos(),
         vec![
-            file.to_owned(),
-            r#"surtr: parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
-            r#"surtr: search "monster" -> 10 Candidates"#.to_owned(),
+            format!("playing: {file}"),
+            r#"parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
+            r#"search "monster" -> 10 Candidates"#.to_owned(),
             // "Monster Eater" (TV_SHORT): contained 0.85 + short-TV bonus 0.02.
-            r#"surtr: chose Candidate id=19 title="Monster" score=1.000 runner-up=0.870"#.to_owned(),
-            r#"surtr: Match id=19 title="Monster" episode="Episode 1/74""#.to_owned(),
+            r#"chose Candidate id=19 title="Monster" score=1.000 runner-up=0.870"#.to_owned(),
+            r#"Match id=19 title="Monster" episode="Episode 1/74""#.to_owned(),
         ]
     );
 }
@@ -555,12 +555,12 @@ async fn a_zero_candidate_query_logs_the_fallback_query_it_tried_next() {
     assert_eq!(
         host.infos(),
         vec![
-            file.to_owned(),
-            r#"surtr: parsed Release Filename: title="tensei shita daiseijo wa seijo de aru koto wo hitakakusu", season=none, episode=1, movie=false, year=none"#.to_owned(),
-            r#"surtr: search "tensei shita daiseijo wa seijo de aru koto wo hitakakusu" -> 0 Candidates"#.to_owned(),
-            r#"surtr: search "tensei shita dai seijo wa seijo de aru koto wo hita kakusu" -> 1 Candidate"#.to_owned(),
-            r#"surtr: chose Candidate id=187402 title="A Tale of the Secret Saint" score=1.000 runner-up=0.000"#.to_owned(),
-            "surtr: Match id=187402 title=\"A Tale of the Secret Saint\" episode=\"Episode 1/?\"".to_owned(),
+            format!("playing: {file}"),
+            r#"parsed Release Filename: title="tensei shita daiseijo wa seijo de aru koto wo hitakakusu", season=none, episode=1, movie=false, year=none"#.to_owned(),
+            r#"search "tensei shita daiseijo wa seijo de aru koto wo hitakakusu" -> 0 Candidates"#.to_owned(),
+            r#"search "tensei shita dai seijo wa seijo de aru koto wo hita kakusu" -> 1 Candidate"#.to_owned(),
+            r#"chose Candidate id=187402 title="A Tale of the Secret Saint" score=1.000 runner-up=0.000"#.to_owned(),
+            "Match id=187402 title=\"A Tale of the Secret Saint\" episode=\"Episode 1/?\"".to_owned(),
         ]
     );
 }
@@ -583,10 +583,10 @@ async fn an_override_logs_its_key_and_id_instead_of_a_search_diagnostic() {
     assert_eq!(
         host.infos(),
         vec![
-            file.to_owned(),
-            r#"surtr: parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
-            r#"surtr: override "monster" -> id 19"#.to_owned(),
-            r#"surtr: Match id=19 title="Monster" episode="Episode 1/74""#.to_owned(),
+            format!("playing: {file}"),
+            r#"parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
+            r#"override "monster" -> id 19"#.to_owned(),
+            r#"Match id=19 title="Monster" episode="Episode 1/74""#.to_owned(),
         ]
     );
 }
@@ -606,14 +606,14 @@ async fn a_dead_override_id_logs_no_fetch_diagnostic() {
     assert_eq!(
         host.infos(),
         vec![
-            file.to_owned(),
-            r#"surtr: parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
+            format!("playing: {file}"),
+            r#"parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
         ]
     );
     assert_eq!(
         host.logs(),
         vec![format!(
-            "surtr: no Anime match (the override for \"monster\" names no AniList entry): {file}"
+            "no Anime match (the override for \"monster\" names no AniList entry): {file}"
         )]
     );
 }
@@ -632,15 +632,15 @@ async fn a_miss_keeps_its_error_and_osd_after_the_trace() {
     assert_eq!(
         host.infos(),
         vec![
-            file.to_owned(),
-            r#"surtr: parsed Release Filename: title="demon slayer infinity castle i", season=none, episode=none, movie=true, year=none"#.to_owned(),
-            r#"surtr: search "demon slayer infinity castle i" -> 0 Candidates"#.to_owned(),
-            r#"surtr: search "anime" -> 10 Candidates"#.to_owned(),
+            format!("playing: {file}"),
+            r#"parsed Release Filename: title="demon slayer infinity castle i", season=none, episode=none, movie=true, year=none"#.to_owned(),
+            r#"search "demon slayer infinity castle i" -> 0 Candidates"#.to_owned(),
+            r#"search "anime" -> 10 Candidates"#.to_owned(),
         ]
     );
     assert_eq!(
         host.logs(),
-        vec![r#"Surtr: no Anime match for "anime""#.to_owned()]
+        vec![r#"no Anime match for "anime""#.to_owned()]
     );
     assert_eq!(
         host.osds(),

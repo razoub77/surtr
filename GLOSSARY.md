@@ -42,7 +42,7 @@ The reason a loaded file resolved to no Match. Repairable — one Override line 
 _Avoid_: lookup failure, no result
 
 **Diagnostic**:
-One level-tagged console line the Daemon sends to mpv over IPC: info for a loaded file, error for every failure the user used to see. The launcher routes it to the matching `mp.msg` function; mpv adds the `[surtr]` prefix.
+One level-tagged console line the Daemon sends to mpv over IPC: info for a loaded file, error for every failure the user used to see. The launcher routes it to the matching `mp.msg` function; mpv adds the `[surtr]` prefix, and the text carries no extra `surtr:`.
 _Avoid_: log line, status message
 
 **Lookup Answer**:

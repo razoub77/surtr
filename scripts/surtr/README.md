@@ -143,9 +143,10 @@ With Discord running and an episode under one of your folders ready:
 
 That is the whole walkthrough. If nothing appears, open mpv's console with the
 backtick key (`` ` ``) and look for lines beginning `[surtr]`. Every mpv start
-prints one `Surtr: watching for playback` line. After a file loads under your
-anime folders, the info lines name the file's full path, the Release Filename
-parsed from it, each answered search's cleaned query and Candidate count, the
+prints one `watching for playback` line. After a file loads under your
+anime folders, the info lines name the file's full path as `playing: <full path>`,
+the Release Filename parsed from it, each answered search's cleaned query and
+Candidate count, the
 Candidate chosen with its id and score, and the Match settled on with its
 AniList id and episode. Warnings name a failed AniList request or a 429 with its
 retry delay; errors name a Miss, a skipped path, or a Discord connection or
@@ -163,7 +164,7 @@ are named there.
   Release Filename's season was corroborated or contradicted, and every step of an
   Absolute Episode walk. mpv's `--log-file=<path>` captures those same lines to
   a file.
-- **No `[surtr]` line at all, not even `Surtr: watching for playback`.** The
+- **No `[surtr]` line at all, not even `watching for playback`.** The
   plugin never loaded from `scripts/surtr/`; run the install command again and
   restart mpv. If even normal mpv output is missing, mpv is running with quiet
   logging.
@@ -178,20 +179,20 @@ are named there.
 - **`Surtr: no Anime match for "<title>"`.** The file is under a folder, but
   AniList could not be matched confidently. The title is the exact key to
   paste into `overrides.json`; see [Overrides](#8-overrides).
-- **`surtr: skipping non-local path ...`.** The file is a URL or a stream, or
+- **`skipping non-local path ...`.** The file is a URL or a stream, or
   is not under any `anime_roots` folder. Check the folder list and remember
   `D:\Anime2` is not inside `D:\Anime`.
-- **`surtr: no anime_roots configured`.** `script-opts/surtr.conf` is missing,
+- **`no anime_roots configured`.** `script-opts/surtr.conf` is missing,
   has no `anime_roots` line, or every entry was blank. Fill it in and restart
   mpv. Until then every local file is eligible.
 - **`Surtr needs mpv 0.36 or newer (found ...)`.** Your mpv is too old. Update
   mpv; Surtr stops by design rather than half-working.
-- **`surtr: surtr.exe not found at "..."`.** Surtr was installed without its
+- **`surtr.exe not found at "..."`.** Surtr was installed without its
   `scripts/surtr` shape, or `surtr.exe` was moved or deleted. Run the install
   command again. If you keep `surtr.exe` elsewhere deliberately, set
   `binary_path` in `script-opts/surtr.conf` to an absolute path or an mpv
   meta-path such as `~~exe_dir/surtr/surtr.exe`; a relative path is refused.
-- **`surtr: binary_path "..." is not absolute`.** Same as above: use
+- **`binary_path "..." is not absolute`.** Same as above: use
   `D:\...`, `~~\...` or `~~exe_dir\...`.
 - **Card appears but is wrong or missing the episode line.** The file matched a
   Movie or an entry whose episode count AniList does not know; Surtr never
@@ -273,9 +274,9 @@ the card when mpv exits.
 ## 8. Overrides
 
 When a file under your folders does not match, Surtr shows
-`Surtr: no Anime match for "<title>"` for five seconds and prints the same line
-in mpv's console. The text in quotes is the override key: the exact query Surtr
-searched, for example `honzuki no gekokujou` or `youjo senki season 2`.
+`Surtr: no Anime match for "<title>"` for five seconds and prints
+`no Anime match for "<title>"` in mpv's console. The text in quotes is the override key: the exact query
+Surtr searched, for example `honzuki no gekokujou` or `youjo senki season 2`.
 
 Decide which AniList entry the file belongs to — its id is the number in the
 URL, `https://anilist.co/anime/108268` — then edit

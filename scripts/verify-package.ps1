@@ -271,7 +271,7 @@ out:close()
 
             $want = Join-Path $scripts 'surtr.exe'
             $wantKey = ConvertTo-PathKey $want
-            $spawned = [regex]::new('^info Surtr: watching for playback \(IPC \\\\\.\\pipe\\surtr-4242\)$')
+            $spawned = [regex]::new('^info watching for playback \(IPC \\\\\.\\pipe\\surtr-4242\)$')
             $spawnAny = [regex]::new('^spawn ')
             $bindAny = [regex]::new('^bind ')
             $expandAny = [regex]::new('^expand-path ')

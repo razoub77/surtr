@@ -166,7 +166,7 @@ async fn main() {
         Ok(millis) => millis,
         Err(()) => {
             let _ = mpv_tx.send(mpv::Outbound::Log(Diagnostic::error(
-                "surtr: invalid pause_timeout; using 0 (no timeout)".to_owned(),
+                "invalid pause_timeout; using 0 (no timeout)".to_owned(),
             )));
             0
         }
