@@ -4,8 +4,12 @@
 
 ### Added
 
-- A loaded file now prints one info-level `[surtr]` line with its full path, so
-  a console with only that line still shows the Daemon is running.
+- Level-tagged console Diagnostics: a loaded file prints its full path, each
+  search prints its cleaned query and Candidate count, and the chosen Candidate
+  and settled Match print their AniList ids; verbose (`--msg-level=all=v`) adds
+  Candidate scores, cache hits and Season Resolution detail. A failed or
+  throttled AniList request now warns with its query or retry delay instead of
+  being silent, without touching playback or Presence.
 
 ### Changed
 

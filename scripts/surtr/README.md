@@ -142,17 +142,27 @@ With Discord running and an episode under one of your folders ready:
 4. Quit mpv. The card disappears.
 
 That is the whole walkthrough. If nothing appears, open mpv's console with the
-backtick key (`` ` ``) and look for lines beginning `[surtr]`; each loaded file
-prints its full path there, and [Troubleshooting](#5-troubleshooting) lists the
-usual causes for error lines. Every mpv start also prints one
-`Surtr: watching for playback` line, so an empty console is itself a clue:
-Surtr never loaded.
+backtick key (`` ` ``) and look for lines beginning `[surtr]`. Every mpv start
+prints one `Surtr: watching for playback` line. After a file loads under your
+anime folders, the info lines name the file's full path, the Release Filename
+parsed from it, each answered search's cleaned query and Candidate count, the
+Candidate chosen with its id and score, and the Match settled on with its
+AniList id and episode. Warnings name a failed AniList request or a 429 with its
+retry delay; errors name a Miss, a skipped path, or a Discord connection or
+rejection failure. [Troubleshooting](#5-troubleshooting) lists the usual causes.
+An empty console is itself a clue: Surtr never loaded.
 
 ## 5. Troubleshooting
 
 Open mpv's console with `` ` `` and read the `[surtr]` lines first; most problems
 are named there.
 
+- **Want the deep resolution detail.** Start mpv with `--msg-level=all=v`. The
+  verbose `[surtr]` lines then show the top three Candidates with their scores,
+  whether each AniList request hit the disk cache or fetched live, how the
+  Release Filename's season was corroborated or contradicted, and every step of an
+  Absolute Episode walk. mpv's `--log-file=<path>` captures those same lines to
+  a file.
 - **No `[surtr]` line at all, not even `Surtr: watching for playback`.** The
   plugin never loaded from `scripts/surtr/`; run the install command again and
   restart mpv. If even normal mpv output is missing, mpv is running with quiet
@@ -253,8 +263,11 @@ the card when mpv exits.
   it away.
 - **Configuration is read at startup.** Editing `surtr.conf` or
   `surtr-overrides.json` takes effect after restarting mpv.
-- **Network hiccups are silent.** If AniList, Discord or the network is
-  unavailable, the card simply does not update; playback is never affected.
+- **Network hiccups leave the card stale, not playback.** If AniList, Discord or
+  the network is unavailable, the card does not update, but playback is never
+  affected and the mpv console names the failure: an AniList request failure or
+  a 429 prints a `[surtr]` warning naming the query or retry delay, while a
+  Discord connection or rejection failure prints a `[surtr]` error.
 - **mpv 0.36 or newer, Windows 11 64-bit only.**
 
 ## 8. Overrides
