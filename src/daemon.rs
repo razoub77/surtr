@@ -124,6 +124,12 @@ impl Lookup {
 /// tests inject recorded answers.
 pub trait MetadataClient {
     fn lookup(&mut self, path: &str) -> Lookup;
+    /// Drains the console Diagnostics the Lookup produced, in decision order.
+    /// Clients that produce no trace — including test fakes — keep this
+    /// default, so the Core can drain every client the same way.
+    fn take_trace(&mut self) -> Vec<Diagnostic> {
+        Vec::new()
+    }
 }
 
 /// Why a lookup found no Match. The rule of thumb: a repairable
@@ -856,7 +862,13 @@ impl<'a> Step<'a> {
         enabled: bool,
         out: &mut Outcome,
     ) {
-        match self.metadata.lookup(&path) {
+        let answer = self.metadata.lookup(&path);
+        // The matcher owns the decisions, so it writes the trace; the Core only
+        // routes it, after the loaded path and before any Miss report.
+        for log in self.metadata.take_trace() {
+            out.effects.push(Effect::Log(log));
+        }
+        match answer {
             Lookup::Matched(metadata) => {
                 self.retry = None;
                 self.current = Some(CurrentMatch { path, metadata });

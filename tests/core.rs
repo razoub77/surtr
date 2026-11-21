@@ -205,6 +205,11 @@ async fn non_local_path_is_skipped_with_a_console_line() {
     assert!(host.publishes().is_empty());
     assert!(host.osds().is_empty(), "a URL never shows an OSD");
     assert_eq!(
+        host.infos(),
+        vec!["https://example.com/stream.m3u8".to_owned()],
+        "the loaded path is reported before it is skipped"
+    );
+    assert_eq!(
         host.logs(),
         vec!["surtr: skipping non-local path https://example.com/stream.m3u8".to_owned()]
     );
@@ -243,6 +248,14 @@ async fn files_outside_the_anime_roots_produce_no_presence_and_no_lookup() {
         "no lookup outside a root"
     );
     assert!(host.osds().is_empty(), "out-of-root never shows an OSD");
+    assert_eq!(
+        host.infos(),
+        vec![
+            r"D:\Anime\Frieren - 01.mkv".to_owned(),
+            file.to_owned(),
+        ],
+        "both paths are reported at info level before either is skipped"
+    );
     assert_eq!(
         host.logs(),
         vec![format!("surtr: skipping non-local path {file}")],

@@ -247,15 +247,23 @@ fn final_scores(query: &str, candidates: &[Candidate], context: &Context) -> Vec
         .collect()
 }
 
+/// The winning score and its runner-up, for the console trace. A Candidate
+/// wins by clearing the score floor *and* leading by the required margin.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Scores {
+    pub best: f64,
+    pub runner_up: f64,
+}
+
 /// What a scored search result set yields.
 #[derive(Debug)]
 pub enum Selection<'a> {
     /// One Candidate is the Match: it cleared the margin, or it was the only
     /// tied Candidate whose titles carry no season ordinal.
-    One(&'a Candidate),
+    One(&'a Candidate, Scores),
     /// Candidates tied at the best score. Only a Root Season proof over the
     /// `SEQUEL` chain can settle them.
-    Tied(Vec<&'a Candidate>),
+    Tied(Vec<&'a Candidate>, Scores),
     /// No Candidate is acceptable.
     None,
 }
@@ -264,8 +272,8 @@ impl<'a> Selection<'a> {
     /// The Match, if this Selection has one: a tie is not a Match.
     pub fn one(self) -> Option<&'a Candidate> {
         match self {
-            Selection::One(candidate) => Some(candidate),
-            Selection::Tied(_) | Selection::None => None,
+            Selection::One(candidate, _) => Some(candidate),
+            Selection::Tied(_, _) | Selection::None => None,
         }
     }
 }
@@ -285,6 +293,7 @@ pub fn choose<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -
         sorted.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
         sorted[1]
     };
+    let trace_scores = Scores { best, runner_up };
     if best < ACCEPT - EPS {
         return Selection::None;
     }
@@ -293,7 +302,7 @@ pub fn choose<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -
             .iter()
             .position(|score| (*score - best).abs() < EPS)
             .unwrap_or(0);
-        return Selection::One(&candidates[index]);
+        return Selection::One(&candidates[index], trace_scores);
     }
     // A season-1 or unmarked file whose Candidates tie at the best score: the
     // franchise's Root Season is the default, and it is the one tied Candidate
@@ -315,9 +324,9 @@ pub fn choose<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -
             .filter(|candidate| root_ordinal_free(candidate))
             .collect();
         if roots.len() == 1 {
-            return Selection::One(roots[0]);
+            return Selection::One(roots[0], trace_scores);
         }
-        return Selection::Tied(tied);
+        return Selection::Tied(tied, trace_scores);
     }
     Selection::None
 }

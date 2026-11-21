@@ -18,9 +18,14 @@
 use std::collections::HashMap;
 
 use surtr::anilist::Candidate;
-use surtr::daemon::{Lookup, Metadata, MetadataClient};
+use surtr::daemon::{Lookup, Metadata, MetadataClient, Policy, Runner};
 use surtr::matcher::{Matcher, MediaSource, SourceError};
+use surtr::overrides::Overrides;
 use surtr::scorer;
+
+mod support;
+
+use support::{Host, SharedClaim, PID, T0};
 
 /// The Metadata of a Match: `None` when the lookup answered anything else.
 /// The corpus's misses and rejects are all `Missed` answers.
@@ -393,6 +398,8 @@ const ROWS: &[(u8, Row)] = &[
 struct FixtureSource {
     fixtures: HashMap<String, Vec<Candidate>>,
     sequels: HashMap<i64, Vec<Candidate>>,
+    /// The one entry an Override can fetch by id; the corpus never needs one.
+    entry: Option<Candidate>,
 }
 
 impl FixtureSource {
@@ -400,7 +407,13 @@ impl FixtureSource {
         Self {
             fixtures: serde_json::from_str(FIXTURES).expect("valid fixture JSON"),
             sequels: serde_json::from_str(RELATIONS).expect("valid relations JSON"),
+            entry: None,
         }
+    }
+
+    fn with_entry(mut self, entry: Candidate) -> Self {
+        self.entry = Some(entry);
+        self
     }
 }
 
@@ -417,8 +430,11 @@ impl MediaSource for FixtureSource {
         Ok(self.sequels.get(&id).cloned().unwrap_or_default())
     }
 
-    fn entry(&mut self, _id: i64) -> Result<Candidate, SourceError> {
-        Err(SourceError::Unavailable)
+    fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
+        match &self.entry {
+            Some(entry) if entry.id == id => Ok(entry.clone()),
+            _ => Err(SourceError::Unavailable),
+        }
     }
 }
 
@@ -480,4 +496,154 @@ fn row_31_ova_is_out_of_scope_and_never_queried() {
         r"D:\!Anime\Honzuki no Gekokujou\Honzuki no Gekokujou OVA\S01OVA-Eustachius's Incognito Operation Downtown, Visiting Missus Corinna.mkv",
     ));
     assert_eq!(metadata, None);
+}
+
+/// One Daemon wired to a real Matcher: the host every trace test drives, with
+/// the Owner claim, clock and policy held constant.
+fn trace_harness<'m, 's>(
+    matcher: &'m mut Matcher<&'s mut FixtureSource>,
+) -> (Host, Runner<'m, SharedClaim>) {
+    let host = Host::new(true);
+    let runner = Runner::new(
+        matcher,
+        host.claim(),
+        PID,
+        T0,
+        Policy::default(),
+        Vec::new(),
+    );
+    (host, runner)
+}
+
+/// The full block of info Diagnostics for a recorded fixture: the loaded path,
+/// Release Filename parsed, each search and its Candidate count, the winning
+/// Candidate's scores, and the Match. The trace is drained by the Daemon Core
+/// through `MetadataClient`, so the harness here is the same one a user sees.
+#[tokio::test]
+async fn the_lookup_trace_pins_the_full_info_block_for_a_recorded_fixture() {
+    let mut source = FixtureSource::recorded();
+    let mut matcher = Matcher::new(&mut source);
+    let (mut host, mut runner) = trace_harness(&mut matcher);
+
+    let file = r"D:\!Anime\Monster\[Anime Time] Monster - 01.mkv";
+    host.load(&mut runner, file).await;
+
+    assert_eq!(
+        host.infos(),
+        vec![
+            file.to_owned(),
+            r#"surtr: parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
+            r#"surtr: search "monster" -> 10 Candidates"#.to_owned(),
+            // "Monster Eater" (TV_SHORT): contained 0.85 + short-TV bonus 0.02.
+            r#"surtr: chose Candidate id=19 title="Monster" score=1.000 runner-up=0.870"#.to_owned(),
+            r#"surtr: Match id=19 title="Monster" episode="Episode 1/74""#.to_owned(),
+        ]
+    );
+}
+
+/// A search that returns zero Candidates is followed by the folder's spelling;
+/// both queries and their counts appear, in the order they were tried.
+#[tokio::test]
+async fn a_zero_candidate_query_logs_the_fallback_query_it_tried_next() {
+    let mut source = FixtureSource::recorded();
+    let mut matcher = Matcher::new(&mut source);
+    let (mut host, mut runner) = trace_harness(&mut matcher);
+
+    let file = r"D:\!Anime\Tensei shita Dai Seijo wa, Seijo de Aru Koto wo Hita Kakusu\[ASW] Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu - 01 [1080p HEVC][5F734ACB].mkv";
+    host.load(&mut runner, file).await;
+
+    assert_eq!(
+        host.infos(),
+        vec![
+            file.to_owned(),
+            r#"surtr: parsed Release Filename: title="tensei shita daiseijo wa seijo de aru koto wo hitakakusu", season=none, episode=1, movie=false, year=none"#.to_owned(),
+            r#"surtr: search "tensei shita daiseijo wa seijo de aru koto wo hitakakusu" -> 0 Candidates"#.to_owned(),
+            r#"surtr: search "tensei shita dai seijo wa seijo de aru koto wo hita kakusu" -> 1 Candidate"#.to_owned(),
+            r#"surtr: chose Candidate id=187402 title="A Tale of the Secret Saint" score=1.000 runner-up=0.000"#.to_owned(),
+            "surtr: Match id=187402 title=\"A Tale of the Secret Saint\" episode=\"Episode 1/?\"".to_owned(),
+        ]
+    );
+}
+
+/// An Override short-circuits search: its key and fetched id take the place
+/// of a search Diagnostic, and the Match still closes the block.
+#[tokio::test]
+async fn an_override_logs_its_key_and_id_instead_of_a_search_diagnostic() {
+    let (overrides, messages) = Overrides::parse(r#"{"monster": 19}"#);
+    assert!(messages.is_empty());
+    let source = FixtureSource::recorded();
+    let entry = source.fixtures[&scorer::normalize("monster")][0].clone();
+    let mut source = source.with_entry(entry);
+    let mut matcher = Matcher::new(&mut source).with_overrides(overrides);
+    let (mut host, mut runner) = trace_harness(&mut matcher);
+
+    let file = r"D:\!Anime\Monster\[Anime Time] Monster - 01.mkv";
+    host.load(&mut runner, file).await;
+
+    assert_eq!(
+        host.infos(),
+        vec![
+            file.to_owned(),
+            r#"surtr: parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
+            r#"surtr: override "monster" -> id 19"#.to_owned(),
+            r#"surtr: Match id=19 title="Monster" episode="Episode 1/74""#.to_owned(),
+        ]
+    );
+}
+
+/// A dead Override id was never fetched, so no fetch Diagnostic is written.
+#[tokio::test]
+async fn a_dead_override_id_logs_no_fetch_diagnostic() {
+    let (overrides, messages) = Overrides::parse(r#"{"monster": 19}"#);
+    assert!(messages.is_empty());
+    let mut source = FixtureSource::recorded();
+    let mut matcher = Matcher::new(&mut source).with_overrides(overrides);
+    let (mut host, mut runner) = trace_harness(&mut matcher);
+
+    let file = r"D:\!Anime\Monster\[Anime Time] Monster - 01.mkv";
+    host.load(&mut runner, file).await;
+
+    assert_eq!(
+        host.infos(),
+        vec![
+            file.to_owned(),
+            r#"surtr: parsed Release Filename: title="monster", season=none, episode=1, movie=false, year=none"#.to_owned(),
+        ]
+    );
+    assert_eq!(
+        host.logs(),
+        vec![format!(
+            "surtr: no Anime match (the override for \"monster\" names no AniList entry): {file}"
+        )]
+    );
+}
+
+/// The Miss report stays exactly where it was; the trace before it is what
+/// explains the two searches and their Candidate counts.
+#[tokio::test]
+async fn a_miss_keeps_its_error_and_osd_after_the_trace() {
+    let mut source = FixtureSource::recorded();
+    let mut matcher = Matcher::new(&mut source);
+    let (mut host, mut runner) = trace_harness(&mut matcher);
+
+    let file = r"D:\!Anime\[Trix] Demon Slayer Infinity Castle I [WEBRip-1080p][HEVC x265 10bit][Multi-Subs] (Dual Audio).mkv";
+    host.load(&mut runner, file).await;
+
+    assert_eq!(
+        host.infos(),
+        vec![
+            file.to_owned(),
+            r#"surtr: parsed Release Filename: title="demon slayer infinity castle i", season=none, episode=none, movie=true, year=none"#.to_owned(),
+            r#"surtr: search "demon slayer infinity castle i" -> 0 Candidates"#.to_owned(),
+            r#"surtr: search "anime" -> 10 Candidates"#.to_owned(),
+        ]
+    );
+    assert_eq!(
+        host.logs(),
+        vec![r#"Surtr: no Anime match for "anime""#.to_owned()]
+    );
+    assert_eq!(
+        host.osds(),
+        vec![(r#"Surtr: no Anime match for "anime""#.to_owned(), 5)]
+    );
 }

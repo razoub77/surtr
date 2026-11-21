@@ -13,7 +13,7 @@ use std::collections::HashSet;
 
 use crate::anilist::Candidate;
 use crate::clock::Millis;
-use crate::daemon::{Lookup, Metadata, MetadataClient, Miss};
+use crate::daemon::{Diagnostic, Lookup, Metadata, MetadataClient, Miss};
 use crate::overrides::Overrides;
 use crate::release;
 use crate::scorer;
@@ -95,6 +95,9 @@ pub struct Matcher<S: MediaSource> {
     /// Which title language leads the card's main title, loaded once at
     /// startup.
     title_language: TitleLanguage,
+    /// This Lookup's console trace, drained by the Core through the
+    /// `MetadataClient` seam once the answer is known.
+    trace: Vec<Diagnostic>,
 }
 
 impl<S: MediaSource> Matcher<S> {
@@ -103,6 +106,7 @@ impl<S: MediaSource> Matcher<S> {
             source,
             overrides: Overrides::none(),
             title_language: TitleLanguage::default(),
+            trace: Vec::new(),
         }
     }
 
@@ -117,6 +121,31 @@ impl<S: MediaSource> Matcher<S> {
     pub fn with_title_language(mut self, title_language: TitleLanguage) -> Self {
         self.title_language = title_language;
         self
+    }
+
+    fn trace(&mut self, text: impl Into<String>) {
+        self.trace.push(Diagnostic::info(text));
+    }
+
+    /// The Candidate that won this search, with the scores that ranked it.
+    fn trace_chosen(&mut self, candidate: &Candidate, scores: scorer::Scores) {
+        let title = candidate_title(candidate, self.title_language).unwrap_or_default();
+        self.trace(format!(
+            "surtr: chose Candidate id={} title=\"{title}\" score={:.3} runner-up={:.3}",
+            candidate.id, scores.best, scores.runner_up
+        ));
+    }
+
+    /// The Match the Lookup settled on, with the Episode segment users see.
+    fn trace_match(&mut self, metadata: &Metadata) {
+        let episode = match &metadata.episode {
+            Some(segment) => format!("\"{segment}\""),
+            None => "none".to_owned(),
+        };
+        self.trace(format!(
+            "surtr: Match id={} title=\"{}\" episode={episode}",
+            metadata.id, metadata.title
+        ));
     }
 
     /// The search for one file, in order: the cleaned title, then a Movie's
@@ -150,6 +179,14 @@ impl<S: MediaSource> Matcher<S> {
                 });
             }
         };
+        self.trace(format!(
+            "surtr: parsed Release Filename: title=\"{}\", season={}, episode={}, movie={}, year={}",
+            parsed.title,
+            display_optional(parsed.season),
+            display_optional(parsed.episode),
+            parsed.movie,
+            display_optional(parsed.year),
+        ));
         // Non-episodic OVAs/specials carry no episode number and are not
         // Movies: out of scope, no Presence.
         if !parsed.movie && parsed.episode.is_none() {
@@ -189,7 +226,10 @@ impl<S: MediaSource> Matcher<S> {
             // never a silent fallback to search.
             if let Some(id) = self.overrides.id(query) {
                 let answer = match self.source.entry(id) {
-                    Ok(candidate) => self.resolve_override(&candidate, &parsed),
+                    Ok(candidate) => {
+                        self.trace(format!("surtr: override \"{query}\" -> id {id}"));
+                        self.resolve_override(&candidate, &parsed)
+                    }
                     Err(SourceError::RateLimited(delay)) => Lookup::RateLimited(delay),
                     Err(SourceError::Unavailable) => Lookup::Missed(Miss::Fatal {
                         reason: format!("the override for \"{query}\" names no AniList entry"),
@@ -211,19 +251,28 @@ impl<S: MediaSource> Matcher<S> {
                     continue;
                 }
             };
+            self.trace(format!(
+                "surtr: search \"{query}\" -> {} {}",
+                candidates.len(),
+                candidate_noun(candidates.len())
+            ));
             answered = true;
             if candidates.is_empty() {
                 continue;
             }
             zero = false;
             match scorer::choose(query, &candidates, &context) {
-                scorer::Selection::One(candidate) => {
+                scorer::Selection::One(candidate, scores) => {
+                    self.trace_chosen(candidate, scores);
                     return settle(deferred, self.resolve(candidate, &parsed));
                 }
                 // A tie no ordinal settled is the Root Season question: prove
                 // it along the `SEQUEL` chain rather than guess.
-                scorer::Selection::Tied(tied) => match self.root_season(&tied) {
-                    Ok(Some(root)) => return settle(deferred, self.resolve(root, &parsed)),
+                scorer::Selection::Tied(tied, scores) => match self.root_season(&tied) {
+                    Ok(Some(root)) => {
+                        self.trace_chosen(root, scores);
+                        return settle(deferred, self.resolve(root, &parsed));
+                    }
                     // A throttle or failed request is no answer, as anywhere
                     // else: the lookup carries it, not a Miss.
                     Err(error) => return settle(deferred, error.into()),
@@ -469,9 +518,33 @@ impl<S: MediaSource> Matcher<S> {
     }
 }
 
+/// An absent parsed field prints as `none`, never an empty slot.
+fn display_optional<T: std::fmt::Display>(value: Option<T>) -> String {
+    value.map_or_else(|| "none".to_owned(), |value| value.to_string())
+}
+
+fn candidate_noun(count: usize) -> &'static str {
+    if count == 1 {
+        "Candidate"
+    } else {
+        "Candidates"
+    }
+}
+
 impl<S: MediaSource> MetadataClient for Matcher<S> {
     fn lookup(&mut self, path: &str) -> Lookup {
-        self.lookup_release(path)
+        self.trace.clear();
+        let answer = self.lookup_release(path);
+        // Only a Match that survived resolution gets the final line: a
+        // contradicted season is still a Miss, even after a Candidate won.
+        if let Lookup::Matched(metadata) = &answer {
+            self.trace_match(metadata);
+        }
+        answer
+    }
+
+    fn take_trace(&mut self) -> Vec<Diagnostic> {
+        std::mem::take(&mut self.trace)
     }
 }
 
