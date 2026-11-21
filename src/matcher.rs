@@ -110,6 +110,9 @@ pub struct Matcher<S: MediaSource> {
     /// This Lookup's console trace, drained by the Core through the
     /// `MetadataClient` seam once the answer is known.
     trace: Vec<Diagnostic>,
+    /// The strongest non-definitive failure so far and a label naming what
+    /// met it, so the warning can name a query the Core never sees.
+    failure: Option<(SourceError, String)>,
 }
 
 impl<S: MediaSource> Matcher<S> {
@@ -119,6 +122,7 @@ impl<S: MediaSource> Matcher<S> {
             overrides: Overrides::none(),
             title_language: TitleLanguage::default(),
             trace: Vec::new(),
+            failure: None,
         }
     }
 
@@ -142,22 +146,62 @@ impl<S: MediaSource> Matcher<S> {
         self.trace.append(&mut trace);
     }
 
+    /// Merges the source's trace and keeps one failure label for the warning,
+    /// then passes the answer on unchanged.
+    fn track<T>(
+        &mut self,
+        answer: Result<T, SourceError>,
+        label: impl FnOnce() -> String,
+    ) -> Result<T, SourceError> {
+        self.merge_source_trace();
+        if let Err(error) = &answer {
+            self.note_failure(*error, label());
+            return Err(*error);
+        }
+        answer
+    }
+
     fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
         let answer = self.source.search(query);
-        self.merge_source_trace();
-        answer
+        self.track(answer, || format!("query \"{query}\""))
     }
 
     fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
         let answer = self.source.sequels(id);
-        self.merge_source_trace();
-        answer
+        self.track(answer, || format!("SEQUEL relations for AniList id {id}"))
     }
 
     fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         let answer = self.source.entry(id);
-        self.merge_source_trace();
-        answer
+        self.track(answer, || format!("override AniList id {id}"))
+    }
+
+    /// Keeps one failure: a 429 outranks a transport failure, and the latest
+    /// 429 supplies the delay the Core will honour. A run of transport
+    /// failures keeps the first query, mirroring `stronger`'s fold.
+    fn note_failure(&mut self, error: SourceError, label: String) {
+        let replace = match self.failure {
+            None => true,
+            Some((SourceError::Unavailable, _)) => matches!(error, SourceError::RateLimited(_)),
+            Some((SourceError::RateLimited(_), _)) => matches!(error, SourceError::RateLimited(_)),
+        };
+        if replace {
+            self.failure = Some((error, label));
+        }
+    }
+
+    /// The one warning for a non-definitive answer. A failed request names
+    /// its query; a 429 names the delay in seconds, matching Retry-After.
+    fn failure_warning(error: SourceError, label: &str) -> Diagnostic {
+        match error {
+            SourceError::Unavailable => {
+                Diagnostic::warn(format!("surtr: AniList request failed for {label}"))
+            }
+            SourceError::RateLimited(delay) => Diagnostic::warn(format!(
+                "surtr: AniList throttled {label}; retrying in {}s",
+                delay as f64 / 1_000.0
+            )),
+        }
     }
 
     fn trace(&mut self, text: impl Into<String>) {
@@ -671,11 +715,20 @@ fn candidate_noun(count: usize) -> &'static str {
 impl<S: MediaSource> MetadataClient for Matcher<S> {
     fn lookup(&mut self, path: &str) -> Lookup {
         self.trace.clear();
+        self.failure = None;
         let answer = self.lookup_release(path);
         // Only a Match that survived resolution gets the final line: a
         // contradicted season is still a Miss, even after a Candidate won.
         if let Lookup::Matched(metadata) = &answer {
             self.trace_match(metadata);
+        }
+        // A non-definitive answer says so on the console: one warning naming
+        // the failed query or the Retry-After delay. A Miss keeps its own
+        // report; a Match needs no warning.
+        if matches!(answer, Lookup::RateLimited(_) | Lookup::Unavailable) {
+            if let Some((error, label)) = self.failure.take() {
+                self.trace.push(Self::failure_warning(error, &label));
+            }
         }
         answer
     }

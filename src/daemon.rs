@@ -101,17 +101,17 @@ pub enum Lookup {
     /// A definitive Miss: no Presence, and the report names why.
     Missed(Miss),
     /// AniList throttled a request: the lookup is deferred and retried once
-    /// after this many milliseconds. Not a Miss — the file has no answer
-    /// yet, so nothing is reported.
+    /// after this many milliseconds. Not a Miss — the file has no answer yet,
+    /// so no Miss is reported, but the lookup warns with the delay.
     RateLimited(Millis),
-    /// A failed request (transport or an unusable response): no Presence
-    /// and no report. The lookup has no answer and no reason to name.
+    /// A failed request (transport or an unusable response): no Presence and
+    /// no Miss. The lookup warns with the query that failed.
     Unavailable,
 }
 
 impl Lookup {
     /// The Miss a definitive answer carries; a rate limit and a bare
-    /// failure report nothing.
+    /// failure report no Miss (they warn instead).
     fn into_miss(self) -> Option<Miss> {
         match self {
             Lookup::Missed(miss) => Some(miss),
@@ -323,6 +323,10 @@ impl Diagnostic {
 
     pub fn info(text: impl Into<String>) -> Self {
         Self::new(Level::Info, text)
+    }
+
+    pub fn warn(text: impl Into<String>) -> Self {
+        Self::new(Level::Warn, text)
     }
 
     pub fn error(text: impl Into<String>) -> Self {
@@ -864,8 +868,13 @@ impl<'a> Step<'a> {
     ) {
         let answer = self.metadata.lookup(&path);
         // The matcher owns the decisions, so it writes the trace; the Core only
-        // routes it, after the loaded path and before any Miss report.
+        // routes it, after the loaded path and before any Miss report. A spent
+        // retry still prints its info/verbose trace, but its non-definitive
+        // answer adds no second warning.
         for log in self.metadata.take_trace() {
+            if is_retry && log.level == Level::Warn {
+                continue;
+            }
             out.effects.push(Effect::Log(log));
         }
         match answer {
@@ -901,7 +910,8 @@ impl<'a> Step<'a> {
     /// is a console line then a 5 s OSD naming the override key, a fatal miss
     /// is a console line only, and a file loaded behind the Toggle-off stays
     /// silent. An answer with no Miss (a failed request, or a throttle whose
-    /// retry was already spent) burns the report but prints nothing. Seek,
+    /// retry was already spent) burns the report but prints no Miss: the
+    /// lookup's own warning is separate, and a spent retry prints none. Seek,
     /// pause and a Toggle-on never re-report it.
     fn report_miss(&mut self, path: &str, enabled: bool, miss: Option<Miss>, out: &mut Outcome) {
         if self.reported_miss.as_deref() == Some(path) {
