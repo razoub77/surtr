@@ -616,6 +616,25 @@ fn title_tokens_keep_words_that_look_like_metadata_inside_the_name() {
 }
 
 #[test]
+fn dvd_resolution_tags_are_not_title_words() {
+    for (path, title) in [
+        (
+            r"D:\!Anime\Pandora Hearts\[DB]Pandora Hearts_-_01_(10bit_DVD480p_x265).mkv",
+            "pandora hearts",
+        ),
+        (
+            r"D:\!Anime\Pandora Hearts\Extras\[DB]Pandora Hearts Extras_-_01_(10bit_DVD480p_x265).mkv",
+            "pandora hearts extras",
+        ),
+    ] {
+        let parsed = release::parse(path).unwrap_or_else(|e| panic!("{path}: {e:?}"));
+        assert_eq!(parsed.title, title, "{path}");
+        assert_eq!(parsed.episode, Some(1), "{path}");
+        assert!(!parsed.movie, "{path}");
+    }
+}
+
+#[test]
 fn the_filename_season_marker_wins_over_the_folder_marker() {
     let parsed = release::parse(r"D:\A\Show S3\[X] Show S2 - 01.mkv").unwrap();
     assert_eq!(parsed.season, Some(2));

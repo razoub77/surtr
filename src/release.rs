@@ -1055,7 +1055,9 @@ fn is_tech_tag(token: &str) -> bool {
         "opus",
         "truehd",
     ];
-    KNOWN.contains(&token) || (token.starts_with("bd") && token.ends_with('p'))
+    KNOWN.contains(&token)
+        || (token.starts_with("bd") && token.ends_with('p'))
+        || (token.starts_with("dvd") && token.ends_with('p'))
 }
 
 /// An upper-case hex or all-digit tag of eight or more characters: a CRC32 or
