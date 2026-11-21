@@ -10,6 +10,7 @@
   Candidate scores, cache hits and Season Resolution detail. A failed or
   throttled AniList request now warns with its query or retry delay instead of
   being silent, without touching playback or Presence.
+- New `pause_timeout` setting in `script-opts/surtr.conf` clears the Presence card after a whole number of paused seconds. `0` (the default) keeps the paused card until resume or another file loads.
 
 ### Changed
 
