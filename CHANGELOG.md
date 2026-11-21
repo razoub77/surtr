@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0] — 2026-11-21
 
 ### Added
 
@@ -26,6 +26,11 @@
   the conf points at a different file; the default is the file beside the conf.
   On first start the old file is copied to the configured path, or merged when
   both exist, and then removed. A failed move or invalid data keeps the old file.
+
+### Fixed
+
+- A parsed release year — on the basename, or the nearest ancestor folder when the basename has none — now rules out Candidates with a different known AniList `seasonYear`. Remakes no longer displace the original: `Fruits Basket (2019)` matches the 2019 season. Candidates with no known year stay eligible; the year never enters the search query or cache key.
+- `DVD480p`-style resolution tags no longer leak into the parsed title, so `Pandora Hearts_-_01_(10bit_DVD480p_x265).mkv` matches Pandora Hearts.
 
 ## [0.2.0] — 2026-11-17
 
@@ -71,5 +76,6 @@
   linking the raw AniList CDN URL directly. Photon resizes and center-crops
   covers on the fly and does not block `anilist.co`.
 
+[0.3.0]: https://github.com/razoub77/surtr/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/razoub77/surtr/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/razoub77/surtr/compare/v0.1.1...v0.1.2
