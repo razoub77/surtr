@@ -13,7 +13,7 @@ use std::collections::HashSet;
 
 use crate::anilist::Candidate;
 use crate::clock::Millis;
-use crate::daemon::{Diagnostic, Lookup, Metadata, MetadataClient, Miss};
+use crate::daemon::{Diagnostic, Level, Lookup, Metadata, MetadataClient, Miss};
 use crate::overrides::Overrides;
 use crate::release;
 use crate::scorer;
@@ -41,6 +41,12 @@ pub trait MediaSource {
     /// no answer here either: it arrives as [`SourceError::Unavailable`],
     /// and the matcher reports it as a named-entry miss.
     fn entry(&mut self, id: i64) -> Result<Candidate, SourceError>;
+    /// Drains this source's own console Diagnostics, in request order. A
+    /// source with nothing to report — including test fakes — keeps the
+    /// default; the cache layer uses this to name hits against live fetches.
+    fn take_trace(&mut self) -> Vec<Diagnostic> {
+        Vec::new()
+    }
 }
 
 impl<S: MediaSource + ?Sized> MediaSource for &mut S {
@@ -54,6 +60,9 @@ impl<S: MediaSource + ?Sized> MediaSource for &mut S {
 
     fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         (**self).entry(id)
+    }
+    fn take_trace(&mut self) -> Vec<Diagnostic> {
+        (**self).take_trace()
     }
 }
 
@@ -73,7 +82,10 @@ const MAX_SEASON_EPISODES: u32 = 999;
 
 /// Relations requests one Root Season proof may spend. A wider or longer
 /// franchise keeps the tie unresolved rather than drain the rate limit.
-const MAX_TIE_REQUESTS: usize = 16;
+/// Relations requests one SEQUEL walk may spend — a tie's root proof or an
+/// Absolute Episode's season hunt. A longer franchise stays unresolved rather
+/// than drain AniList's rate limit.
+const MAX_RELATIONS_REQUESTS: usize = 16;
 
 /// Which AniList title language leads the card's main title: the entry's
 /// other language stands in when the preferred one is missing.
@@ -123,8 +135,60 @@ impl<S: MediaSource> Matcher<S> {
         self
     }
 
+    /// Drains the source's own Diagnostics into this lookup's trace, in
+    /// request order, so a cache line lands beside the decision it explains.
+    fn merge_source_trace(&mut self) {
+        let mut trace = self.source.take_trace();
+        self.trace.append(&mut trace);
+    }
+
+    fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
+        let answer = self.source.search(query);
+        self.merge_source_trace();
+        answer
+    }
+
+    fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
+        let answer = self.source.sequels(id);
+        self.merge_source_trace();
+        answer
+    }
+
+    fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
+        let answer = self.source.entry(id);
+        self.merge_source_trace();
+        answer
+    }
+
     fn trace(&mut self, text: impl Into<String>) {
         self.trace.push(Diagnostic::info(text));
+    }
+
+    fn trace_verbose(&mut self, text: impl Into<String>) {
+        self.trace.push(Diagnostic::new(Level::Verbose, text));
+    }
+
+    /// One step of an Absolute Episode walk through SEQUEL relations.
+    fn trace_walk(&mut self, text: impl Into<String>) {
+        self.trace_verbose(format!("surtr: absolute walk: {}", text.into()));
+    }
+
+    /// The deep view of a scored result set: the top three Candidates with
+    /// their ids, titles and scores, before the info-level decision line.
+    fn trace_top_candidates(&mut self, query: &str, ranked: &[scorer::Ranked<'_>]) {
+        let top = ranked
+            .iter()
+            .take(3)
+            .map(|entry| {
+                let title = candidate_title(entry.candidate, self.title_language).unwrap_or_default();
+                format!(
+                    "id={} title=\"{title}\" score={:.3}",
+                    entry.candidate.id, entry.score
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        self.trace_verbose(format!("surtr: top Candidates for \"{query}\": [{top}]"));
     }
 
     /// The Candidate that won this search, with the scores that ranked it.
@@ -225,7 +289,7 @@ impl<S: MediaSource> Matcher<S> {
             // declared id. A dead id or a contradicted season is no Presence —
             // never a silent fallback to search.
             if let Some(id) = self.overrides.id(query) {
-                let answer = match self.source.entry(id) {
+                let answer = match self.entry(id) {
                     Ok(candidate) => {
                         self.trace(format!("surtr: override \"{query}\" -> id {id}"));
                         self.resolve_override(&candidate, &parsed)
@@ -237,7 +301,7 @@ impl<S: MediaSource> Matcher<S> {
                 };
                 return settle(deferred, answer);
             }
-            let candidates = match self.source.search(query) {
+            let candidates = match self.search(query) {
                 Ok(candidates) => candidates,
                 Err(error) => {
                     // A throttle or failed request is no answer: the pass goes
@@ -261,7 +325,9 @@ impl<S: MediaSource> Matcher<S> {
                 continue;
             }
             zero = false;
-            match scorer::choose(query, &candidates, &context) {
+            let ranked = scorer::ranked(query, &candidates, &context);
+            self.trace_top_candidates(query, &ranked);
+            match scorer::choose(&ranked, &context) {
                 scorer::Selection::One(candidate, scores) => {
                     self.trace_chosen(candidate, scores);
                     return settle(deferred, self.resolve(candidate, &parsed));
@@ -325,14 +391,27 @@ impl<S: MediaSource> Matcher<S> {
         if let Some(season) = parsed.season {
             // `Season N` was in the query; the entry must carry the same
             // ordinal in its titles or synonyms. No corroboration, no
-            // Presence — never fall back to the base entry.
-            if corroborate && season > 1 && !corroborates(candidate, season) {
-                return Lookup::Missed(Miss::Repairable { key });
+            // Presence — never fall back to the base entry. An Override
+            // asserts its id, so it skips this check and its trace.
+            if corroborate && season > 1 {
+                let found = corroborates(candidate, season);
+                self.trace_verbose(format!(
+                    "surtr: season marker {season} in titles or synonyms of id={}: {}",
+                    candidate.id,
+                    if found { "found" } else { "not found" }
+                ));
+                if !found {
+                    return Lookup::Missed(Miss::Repairable { key });
+                }
             }
             // An explicit marker is trusted, never walked forward from: an
             // episode beyond the entry's known total contradicts it.
             if let (Some(episode), Some(total)) = (parsed.episode, candidate.episodes) {
                 if episode > total {
+                    self.trace_verbose(format!(
+                        "surtr: episode {episode} exceeds Total Episodes {total} in id={}: season marker {season} contradicted",
+                        candidate.id
+                    ));
                     return Lookup::Missed(Miss::Repairable { key });
                 }
             }
@@ -377,7 +456,7 @@ impl<S: MediaSource> Matcher<S> {
         if ids.len() < 2 {
             return Ok(None);
         }
-        let mut budget = MAX_TIE_REQUESTS;
+        let mut budget = MAX_RELATIONS_REQUESTS;
         let mut root = None;
         for candidate in tied {
             let chain = self.sequel_chain(candidate.id, &mut budget)?;
@@ -404,7 +483,7 @@ impl<S: MediaSource> Matcher<S> {
         let mut visited = HashSet::from([id]);
         while *budget > 0 {
             *budget -= 1;
-            let mut sequels = self.source.sequels(current)?;
+            let mut sequels = self.sequels(current)?;
             sequels.sort_by_key(|sequel| sequel.id);
             sequels.dedup_by_key(|sequel| sequel.id);
             if sequels.len() != 1 {
@@ -442,15 +521,29 @@ impl<S: MediaSource> Matcher<S> {
             return Lookup::Unavailable;
         };
         let mut current = root.id;
+        self.trace_walk(format!(
+            "root id={} total={total} episode={episode} remaining={remaining}",
+            root.id
+        ));
         // A counted season whose own total is unknown, and the episode number
         // relative to it: the target when the chain ends, or when only movies
         // and other continuity entries follow it.
         let mut unknown: Option<(Candidate, u32)> = None;
         let mut visited = HashSet::from([root.id]);
+        let mut spent = 0usize;
         loop {
+            if spent == MAX_RELATIONS_REQUESTS {
+                self.trace_walk(format!(
+                    "stop: budget exhausted after {spent} relations requests"
+                ));
+                return Lookup::Missed(Miss::Fatal {
+                    reason: "absolute episode sequel chain exceeds the relations budget".to_owned(),
+                });
+            }
+            spent += 1;
             // A failed relations request is no answer, not the end of the
             // chain: no Presence and no report rather than guessing.
-            let mut sequels = match self.source.sequels(current) {
+            let mut sequels = match self.sequels(current) {
                 Ok(sequels) => sequels,
                 Err(SourceError::RateLimited(delay)) => return Lookup::RateLimited(delay),
                 Err(SourceError::Unavailable) => return Lookup::Unavailable,
@@ -462,19 +555,31 @@ impl<S: MediaSource> Matcher<S> {
             sequels.dedup_by_key(|sequel| sequel.id);
             if sequels.is_empty() {
                 if let Some((season, episode)) = unknown {
+                    self.trace_walk(format!(
+                        "stop: unknown total in id={} at episode {episode} (budget={spent})",
+                        season.id
+                    ));
                     return self.matched_season(&season, episode);
                 }
+                self.trace_walk(format!(
+                    "stop: overrun after id={current}: no SEQUEL (budget={spent})"
+                ));
                 return Lookup::Missed(Miss::Fatal {
                     reason: "absolute episode beyond the known sequel chain".to_owned(),
                 });
             }
             if sequels.len() != 1 {
+                self.trace_walk(format!(
+                    "stop: branch at id={current} with {} sequels (budget={spent})",
+                    sequels.len()
+                ));
                 return Lookup::Missed(Miss::Repairable {
                     key: key.to_owned(),
                 });
             }
             let next = sequels.remove(0);
             if !visited.insert(next.id) {
+                self.trace_walk(format!("stop: cycle at id={} (budget={spent})", next.id));
                 return Lookup::Missed(Miss::Fatal {
                     reason: "the sequel chain cycles".to_owned(),
                 });
@@ -483,6 +588,10 @@ impl<S: MediaSource> Matcher<S> {
                 // A second counted season after an unknown total makes the
                 // containment ambiguous: the number may belong to either.
                 if unknown.is_some() {
+                    self.trace_walk(format!(
+                        "stop: unknown total ambiguity at id={} (budget={spent})",
+                        next.id
+                    ));
                     return Lookup::Missed(Miss::Fatal {
                         reason: "absolute episode across a season with no known Total Episodes"
                             .to_owned(),
@@ -490,14 +599,42 @@ impl<S: MediaSource> Matcher<S> {
                 }
                 match next.episodes {
                     Some(total) if remaining <= total => {
+                        self.trace_walk(format!(
+                            "stop: containment in id={} at episode {remaining}/{total} (budget={spent})",
+                            next.id
+                        ));
                         return self.matched_season(&next, remaining);
                     }
-                    Some(total) => remaining -= total,
-                    None => unknown = Some((next.clone(), remaining)),
+                    Some(total) => {
+                        remaining -= total;
+                        self.trace_walk(format!(
+                            "counted season id={} total={total}: remaining={remaining} (budget={spent})",
+                            next.id
+                        ));
+                    }
+                    None => {
+                        self.trace_walk(format!(
+                            "counted season id={} total=unknown: remaining={remaining} (budget={spent})",
+                            next.id
+                        ));
+                        unknown = Some((next.clone(), remaining));
+                    }
                 }
-            } else if !is_continuity(next.format.as_deref()) {
+            } else if is_continuity(next.format.as_deref()) {
+                // Continuity nodes are walked but never counted; name them so
+                // no step of the chain is missing from the deep view.
+                self.trace_walk(format!(
+                    "visited continuity id={} format={} (budget={spent})",
+                    next.id,
+                    next.format.as_deref().unwrap_or("unknown")
+                ));
+            } else {
                 // A SEQUEL to anything that is not a season (music, manga,
                 // an unknown format) is not part of the tally.
+                self.trace_walk(format!(
+                    "stop: non-season sequel id={} (budget={spent})",
+                    next.id
+                ));
                 return Lookup::Missed(Miss::Fatal {
                     reason: "the sequel chain leaves the counted seasons".to_owned(),
                 });

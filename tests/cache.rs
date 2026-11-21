@@ -9,6 +9,7 @@ use std::rc::Rc;
 use surtr::anilist::Candidate;
 use surtr::cache::{Cache, Cached, TTL_MS, VERSION};
 use surtr::clock::Clock;
+use surtr::daemon::Level;
 use surtr::matcher::{MediaSource, SourceError};
 
 mod support;
@@ -199,6 +200,34 @@ fn relations_and_entries_are_cached_by_id() {
     assert_eq!(cached.entry(108268).unwrap().id, 108268);
     assert_eq!(cached.entry(108268).unwrap().id, 108268);
     assert_eq!(calls.entries.get(), 1, "entries are cached by id");
+    // Each request names itself as a hit or a live fetch, at Verbose level so
+    // mpv hides it without --msg-level=all=v.
+    let trace: Vec<(Level, String)> = cached
+        .take_trace()
+        .into_iter()
+        .map(|log| (log.level, log.text))
+        .collect();
+    assert_eq!(
+        trace,
+        vec![
+            (
+                Level::Verbose,
+                "surtr: cache: relations id=1: live fetch".to_owned()
+            ),
+            (
+                Level::Verbose,
+                "surtr: cache: relations id=1: hit".to_owned()
+            ),
+            (
+                Level::Verbose,
+                "surtr: cache: entry id=108268: live fetch".to_owned()
+            ),
+            (
+                Level::Verbose,
+                "surtr: cache: entry id=108268: hit".to_owned()
+            ),
+        ]
+    );
 }
 
 #[test]

@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::anilist::Candidate;
 use crate::clock::{Clock, Millis};
+use crate::daemon::{Diagnostic, Level};
 use crate::matcher::{MediaSource, SourceError};
 use crate::scorer;
 
@@ -170,6 +171,9 @@ pub struct Cached<S, C> {
     inner: S,
     cache: Cache,
     clock: C,
+    /// One Verbose Diagnostic per request: disk hit or live fetch. The Matcher
+    /// drains this through the MediaSource seam and merges it into its trace.
+    trace: Vec<Diagnostic>,
 }
 
 impl<S: MediaSource, C: Clock> Cached<S, C> {
@@ -178,7 +182,12 @@ impl<S: MediaSource, C: Clock> Cached<S, C> {
             inner,
             cache,
             clock,
+            trace: Vec::new(),
         }
+    }
+
+    fn trace_verbose(&mut self, text: impl Into<String>) {
+        self.trace.push(Diagnostic::new(Level::Verbose, text));
     }
 }
 
@@ -186,8 +195,10 @@ impl<S: MediaSource, C: Clock> MediaSource for Cached<S, C> {
     fn search(&mut self, query: &str) -> Result<Vec<Candidate>, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.search(query, now) {
+            self.trace_verbose(format!("surtr: cache: search \"{query}\": hit"));
             return Ok(cached);
         }
+        self.trace_verbose(format!("surtr: cache: search \"{query}\": live fetch"));
         let result = self.inner.search(query)?;
         self.cache.store_search(query, result.clone(), now);
         Ok(result)
@@ -196,8 +207,10 @@ impl<S: MediaSource, C: Clock> MediaSource for Cached<S, C> {
     fn sequels(&mut self, id: i64) -> Result<Vec<Candidate>, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.sequels(id, now) {
+            self.trace_verbose(format!("surtr: cache: relations id={id}: hit"));
             return Ok(cached);
         }
+        self.trace_verbose(format!("surtr: cache: relations id={id}: live fetch"));
         let result = self.inner.sequels(id)?;
         self.cache.store_sequels(id, result.clone(), now);
         Ok(result)
@@ -206,10 +219,16 @@ impl<S: MediaSource, C: Clock> MediaSource for Cached<S, C> {
     fn entry(&mut self, id: i64) -> Result<Candidate, SourceError> {
         let now = self.clock.now_millis();
         if let Some(cached) = self.cache.entry(id, now) {
+            self.trace_verbose(format!("surtr: cache: entry id={id}: hit"));
             return Ok(cached);
         }
+        self.trace_verbose(format!("surtr: cache: entry id={id}: live fetch"));
         let result = self.inner.entry(id)?;
         self.cache.store_entry(id, result.clone(), now);
         Ok(result)
+    }
+
+    fn take_trace(&mut self) -> Vec<Diagnostic> {
+        std::mem::take(&mut self.trace)
     }
 }

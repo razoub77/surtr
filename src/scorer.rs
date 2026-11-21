@@ -247,6 +247,28 @@ fn final_scores(query: &str, candidates: &[Candidate], context: &Context) -> Vec
         .collect()
 }
 
+/// One Candidate's place in a scored result set, highest score first. Stable
+/// sorting keeps AniList's order among ties, which is the order `choose` has
+/// always used to break them.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Ranked<'a> {
+    pub candidate: &'a Candidate,
+    pub score: f64,
+}
+
+/// Scores one result set once, highest first: the single source of truth for
+/// both the choice and its verbose top-three trace.
+pub fn ranked<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -> Vec<Ranked<'a>> {
+    let scores = final_scores(query, candidates, context);
+    let mut out: Vec<Ranked<'_>> = candidates
+        .iter()
+        .zip(scores)
+        .map(|(candidate, score)| Ranked { candidate, score })
+        .collect();
+    out.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    out
+}
+
 /// The winning score and its runner-up, for the console trace. A Candidate
 /// wins by clearing the score floor *and* leading by the required margin.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -278,31 +300,25 @@ impl<'a> Selection<'a> {
     }
 }
 
-/// Scores a search result set once and reports the choice: a Match, the tie a
+/// Reports the choice from an already-ranked result set: a Match, the tie a
 /// Root Season proof may settle, or no acceptable Candidate.
-pub fn choose<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -> Selection<'a> {
-    let scores = final_scores(query, candidates, context);
-
-    let best = scores.iter().cloned().fold(0.0_f64, f64::max);
+pub fn choose<'a>(ranked: &[Ranked<'a>], context: &Context) -> Selection<'a> {
+    let Some(best) = ranked.first() else {
+        return Selection::None;
+    };
+    let best_score = best.score;
     // The runner-up is the second-highest score value; with a single
     // Candidate it is zero, so the margin is the score itself.
-    let runner_up = if scores.len() <= 1 {
-        0.0
-    } else {
-        let mut sorted = scores.clone();
-        sorted.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
-        sorted[1]
+    let runner_up = ranked.get(1).map_or(0.0, |second| second.score);
+    let trace_scores = Scores {
+        best: best_score,
+        runner_up,
     };
-    let trace_scores = Scores { best, runner_up };
-    if best < ACCEPT - EPS {
+    if best_score < ACCEPT - EPS {
         return Selection::None;
     }
-    if best - runner_up >= MARGIN - EPS {
-        let index = scores
-            .iter()
-            .position(|score| (*score - best).abs() < EPS)
-            .unwrap_or(0);
-        return Selection::One(&candidates[index], trace_scores);
+    if best_score - runner_up >= MARGIN - EPS {
+        return Selection::One(best.candidate, trace_scores);
     }
     // A season-1 or unmarked file whose Candidates tie at the best score: the
     // franchise's Root Season is the default, and it is the one tied Candidate
@@ -310,15 +326,14 @@ pub fn choose<'a>(query: &str, candidates: &'a [Candidate], context: &Context) -
     // `2nd`, `3rd`, `4th` and `5th Season` entries). Two such Candidates stay
     // a tie for the `SEQUEL` chain to settle.
     let mut seen = std::collections::HashSet::new();
-    let tied: Vec<&Candidate> = candidates
+    let tied: Vec<&'a Candidate> = ranked
         .iter()
-        .zip(&scores)
-        .filter(|(_, score)| (**score - best).abs() < EPS)
-        .map(|(candidate, _)| candidate)
+        .filter(|entry| (entry.score - best_score).abs() < EPS)
+        .map(|entry| entry.candidate)
         .filter(|candidate| seen.insert(candidate.id))
         .collect();
     if tied.len() > 1 && context.season.is_none_or(|season| season == 1) {
-        let roots: Vec<&Candidate> = tied
+        let roots: Vec<&'a Candidate> = tied
             .iter()
             .copied()
             .filter(|candidate| root_ordinal_free(candidate))
@@ -337,7 +352,8 @@ pub fn select<'a>(
     candidates: &'a [Candidate],
     context: &Context,
 ) -> Option<&'a Candidate> {
-    choose(query, candidates, context).one()
+    let ranked = ranked(query, candidates, context);
+    choose(&ranked, context).one()
 }
 
 /// Whether any of the Candidate's titles carries a season ordinal above 1:
